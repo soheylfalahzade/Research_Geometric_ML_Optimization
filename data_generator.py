@@ -1,69 +1,84 @@
+import osmnx as ox
+import networkx as nx
 import pandas as pd
 import numpy as np
-import networkx as nx
 
-def compute_greedy_spanner(points, t=2.0):
-    n = len(points)
-    G = nx.Graph()
-    G.add_nodes_from(range(n))
-    edges = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            dist = np.linalg.norm(points[i] - points[j])
-            edges.append((i, j, dist))
-    edges.sort(key=lambda x: x[2])
-    for u, v, weight in edges:
+def generate_real_spatial_dataset(city_name="Eindhoven, Netherlands", stretch_factor=2.0):
+    print(f"Loading real road network for {city_name}...")
+    G = ox.graph_from_place(city_name, network_type="drive")
+    G = ox.project_graph(G)
+    G_undirected = G.to_undirected()
+    
+    print("Extracting node coordinates and global centrality metrics...")
+    nodes, edges = ox.graph_to_gdfs(G_undirected)
+    
+    # Calculate PageRank as a global topological feature
+    print("Calculating PageRank for global context...")
+    pagerank = nx.pagerank(G_undirected, weight='length')
+    
+    # Sort edges by length for Greedy Spanner
+    print("Sorting edges for Greedy Spanner computation...")
+    sorted_edges = sorted(G_undirected.edges(keys=True, data=True), key=lambda x: x[3].get('length', 0.0))
+    
+    spanner_G = nx.Graph()
+    spanner_G.add_nodes_from(G_undirected.nodes())
+    
+    spanner_edge_set = set()
+    total_edges = len(sorted_edges)
+    print(f"Computing EXACT Greedy Spanner (t={stretch_factor}) on {total_edges} edges...")
+    
+    for idx, (u, v, k, data) in enumerate(sorted_edges):
+        w = data.get('length', 1.0)
         try:
-            shortest_path = nx.shortest_path_length(G, source=u, target=v, weight='weight')
+            shortest_path_len = nx.shortest_path_length(spanner_G, source=u, target=v, weight='length')
         except nx.NetworkXNoPath:
-            shortest_path = float('inf')
-        if shortest_path > t * weight:
-            G.add_edge(u, v, weight=weight)
-    return G
-
-def generate_pro_research_data(num_graphs=100, nodes_per_graph=30):
-    print(f"🧬 Extracting ELITE Geometric Features (Length, Rank, Angle) from {num_graphs} graphs...")
-    all_data = []
-
-    for g_idx in range(num_graphs):
-        points = np.random.rand(nodes_per_graph, 2) * 100
-        spanner = compute_greedy_spanner(points, t=2.0)
-        
-        for i in range(nodes_per_graph):
-            neighbors = []
-            for j in range(nodes_per_graph):
-                if i == j: continue
-                dist = np.linalg.norm(points[i] - points[j])
-                angle = np.arctan2(points[j][1] - points[i][1], points[j][0] - points[i][0])
-                neighbors.append({'id': j, 'dist': dist, 'angle': angle})
+            shortest_path_len = float('inf')
             
-            # مرتب‌سازی بر اساس فاصله
-            neighbors.sort(key=lambda x: x['dist'])
+        if shortest_path_len > stretch_factor * w:
+            spanner_G.add_edge(u, v, length=w)
+            spanner_edge_set.add((u, v, k))
             
-            for rank, neighbor in enumerate(neighbors):
-                j = neighbor['id']
-                if i < j:
-                    # محاسبه Angular Gap: کمترین اختلاف زاویه با یال‌های کوتاه‌تر
-                    angles_of_shorter_edges = [n['angle'] for n in neighbors[:rank]]
-                    if not angles_of_shorter_edges:
-                        min_angle_gap = 2 * np.pi # برای اولین یال
-                    else:
-                        angle_diffs = [abs(neighbor['angle'] - a) for a in angles_of_shorter_edges]
-                        min_angle_gap = min(angle_diffs)
+        if idx % 2000 == 0:
+            print(f"Progress: {idx}/{total_edges} edges evaluated...")
 
-                    all_data.append({
-                        'edge_length': neighbor['dist'],
-                        'relative_rank': rank,
-                        'angular_gap': min_angle_gap, # ویژگی فوق‌حرفه‌ای جدید
-                        'is_in_spanner': 1 if spanner.has_edge(i, j) else 0
-                    })
+    print("Extracting geometric and topological features for ML dataset...")
+    edges_data = []
+    for u, v, k, data in G_undirected.edges(keys=True, data=True):
+        length = data.get("length", 0.0)
+        u_degree = G_undirected.degree(u)
+        v_degree = G_undirected.degree(v)
         
-        if (g_idx + 1) % 20 == 0:
-            print(f"✅ Step {g_idx + 1}/{num_graphs} complete.")
-
-    df = pd.DataFrame(all_data)
+        # Coordinate calculation
+        u_x, u_y = nodes.loc[u]['x'], nodes.loc[u]['y']
+        v_x, v_y = nodes.loc[v]['x'], nodes.loc[v]['y']
+        dx = v_x - u_x
+        dy = v_y - u_y
+        
+        edge_centrality = u_degree * v_degree / (length + 1)
+        
+        # Global topological features
+        u_pagerank = pagerank.get(u, 0.0)
+        v_pagerank = pagerank.get(v, 0.0)
+        
+        is_spanner_edge = 1 if (u, v, k) in spanner_edge_set or (v, u, k) in spanner_edge_set else 0
+        
+        edges_data.append({
+            "node_u": u,
+            "node_v": v,
+            "length": length,
+            "u_degree": u_degree,
+            "v_degree": v_degree,
+            "dx": dx,
+            "dy": dy,
+            "edge_centrality": edge_centrality,
+            "u_pagerank": u_pagerank,
+            "v_pagerank": v_pagerank,
+            "is_spanner_edge": is_spanner_edge
+        })
+        
+    df = pd.DataFrame(edges_data)
     df.to_csv("spanner_dataset_pro.csv", index=False)
-    print("\n🏁 ELITE Dataset saved as 'spanner_dataset_pro.csv'")
+    print(f"Successfully generated REAL spatial dataset with PageRank: {len(df)} edges saved.")
 
 if __name__ == "__main__":
-    generate_pro_research_data(num_graphs=150, nodes_per_graph=40)
+    generate_real_spatial_dataset()
