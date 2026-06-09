@@ -95,3 +95,15 @@ To meet the rigorous standards of journals like **IEEE T-ITS**, the framework in
     GitHub: github.com/soheylfalahzade
 
 ```
+
+### 4. Global Generalization & Routing Performance (N=1000 Queries)
+To ensure academic rigor, we benchmarked the Eindhoven-trained model across four diverse urban morphologies without re-training.
+
+| City | Urban Fabric | Edge Reduction | Search Speedup | Avg. Stretch ($t$) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Eindhoven** | Hybrid | 95.1% | **4.5x** | 1.465 |
+| **Manhattan** | Grid | 64.6% | **3.5x** | 1.593 |
+| **Paris** | Radial | 98.8% | **9.5x** | 1.318 |
+| **Rome** | Organic | 58.7% | **3.7x** | 1.527 |
+
+> **Conclusion:** The framework demonstrates universal spatial feature learning, maintaining $t < 2.0$ across all tested global topologies while significantly reducing routing latency.
