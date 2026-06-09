@@ -72,5 +72,26 @@ To meet the rigorous standards of journals like **IEEE T-ITS**, the framework in
 
 ## ⚡ Quick Start
 ### Installation
-```bash
-pip install osmnx folium networkx scikit-learn pandas matplotlib seaborn
+
+```
+
+    pip install osmnx folium networkx scikit-learn pandas matplotlib seaborn
+
+```
+
+## Run Full Research Pipeline
+
+    python data_generator.py     # Generate Ground Truth
+    python genetic_optimizer.py  # Optimize Hyperparameters
+    python q1_final_experiment.py # Validate Connectivity & Repairs     
+
+```
+
+##  Contact Information
+
+    Author: Soheyl Falahzade
+    Affiliation: Yazd University / Salman Farsi University of Kazerun
+    LinkedIn: linkedin.com/in/soheyl-falah-zade
+    GitHub: github.com/soheylfalahzade
+
+```
