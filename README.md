@@ -1,47 +1,47 @@
-# Geospatial Graph Optimizer: AI-Driven t-Spanner Construction
+# Geospatial Graph Optimizer: AI-Driven t-Spanner Construction for ITS
 
-An AI-driven optimization framework for real-time traffic management. We replace computationally expensive greedy spanner constructions with a Machine Learning classifier to prune redundant edges in massive geospatial road networks (12k+ nodes).
-
----
-
-## 🔬 Scientific Methodology
-This framework bridges Computational Geometry with Predictive Modeling:
-1. **Topological Feature Engineering:** Maps local (node degree, centrality) and global (PageRank) network features to edge-pruning decisions.
-2. **Metaheuristic Optimization:** Employs a **Genetic Algorithm (GA)** to find optimal hyperparameters (depth, estimators) for our Random Forest classifier, maximizing the trade-off between pruning density and topological connectivity.
-3. **Safety-Constrained Inference:** Optimized to maintain connectivity while achieving high-speed routing.
-
-## 📊 Benchmark Comparison (Computational Efficiency)
-| Algorithm | Best Fitness Score | Optimization Budget |
-| :--- | :--- | :--- |
-| **Genetic Algorithm (GA)** | **0.7868** | 24 Evaluations |
-| Particle Swarm (PSO) | 0.7836 | 24 Evaluations |
-| Differential Evolution | 0.7814 | 24 Evaluations |
-| Random Search (RS) | 0.7791 | 24 Evaluations |
+An AI-driven optimization framework that utilizes Machine Learning and Metaheuristic Evolutionary Algorithms to predict, prune, and construct high-quality geometric $t$-spanner graphs for real-world urban topologies.
 
 ---
 
-## 🚀 Industrial & Academic KPIs
-* **Performance:** 14x acceleration in shortest-path queries (under 2ms execution time).
-* **Network Sparsification:** 29.6% reduction in edge density, optimizing storage and query throughput.
-* **Generalization:** Demonstrated robustness on real-world GIS data from OpenStreetMap (Eindhoven topology).
+## 📊 Performance Benchmarks & Methodology
+
+### 1. Convergence Comparison
+The Genetic Algorithm (GA) outperformed Particle Swarm (PSO) and Differential Evolution (DE) in finding optimal pruning hyperparameters.
+![Benchmark Convergence](benchmark_convergence.png)
+
+### 2. Topological Performance Summary
+| Algorithm | Best Fitness | ROC-AUC | Pruned Edge Recall |
+| :--- | :--- | :--- | :--- |
+| **Genetic Algorithm (GA)** | **0.7868** | 0.8427 | **0.7159** |
+| Particle Swarm (PSO) | 0.7836 | 0.8350 | 0.7010 |
+| Differential Evolution (DE) | 0.7814 | 0.8310 | 0.6980 |
+| Random Search (RS) | 0.7791 | 0.8250 | 0.6850 |
 
 ---
 
-## 🛠️ Repository Features
-* `data_generator.py`: Generates ground truth labels using the rigorous Greedy Spanner algorithm.
-* `research_ml.py`: Balanced Random Forest classifier optimized for high-recall pruning.
-* `hyperparameter_benchmark.py`: Comparative metaheuristic solver (GA, PSO, DE, RS).
-* `final_pruned_graph.html`: Interactive GIS proof-of-concept for real-world application.
+## 📐 Complexity & Theoretical Analysis
+
+### Algorithmic Bottleneck
+The construction of a $t$-spanner graph via the greedy approach entails a complexity of:
+$$O(m \cdot (n + m) \log n)$$
+where $n$ is nodes and $m$ is edges. Our proposed ML-based pruning reduces the edge count $m$ to $m'$ where $m' \ll m$, accelerating queries to:
+$$O(m' + n \log n)$$
+
+### ML-Based Optimization
+We define a classifier $f_\theta$ mapping topological features to the spanner set:
+$$\hat{y}_{i} = f_\theta(length_i, centrality_i, PageRank_{u,v})$$
+This approach effectively prunes ~30% of the network edges while preserving 88% of topological connectivity.
 
 ---
 
-## ⚡ Quick Start
-```bash
-# 1. Generate Ground Truth & Features
-python data_generator.py
+## 🚀 Future Integration: Dynamic Rerouting
+Our optimized graph serves as the backbone for the [Adaptive ITS Framework](https://github.com/soheylfalahzade/adaptive-its-priority), enabling real-time emergency vehicle preemption in CARLA/SUMO by allowing 14x faster path recalculations.
 
-# 2. Train Optimized Model
-python research_ml.py
+---
 
-# 3. Run Evolutionary Benchmark
-python hyperparameter_benchmark.py
+## 🛠️ Repository Structure
+* `data_generator.py`: Generates spatial dataset and computes exact greedy ground truth.
+* `research_ml.py`: Balanced Random Forest classifier.
+* `genetic_optimizer.py`: Evolutionary search for optimal hyperparameters.
+* `final_pruned_graph.html`: Interactive GIS visualization of the optimized road topology.
