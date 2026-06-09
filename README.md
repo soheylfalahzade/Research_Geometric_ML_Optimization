@@ -1,38 +1,32 @@
-# Geometric Machine Learning & Graph Spanner Optimization
+# Geospatial Graph Optimizer: AI-Driven t-Spanner Construction
 
-An AI-driven optimization framework that utilizes Machine Learning and Metaheuristic Evolutionary Algorithms to predict, prune, and construct high-quality geometric $t$-spanner graphs on real-world urban topologies.
+An AI-driven optimization framework that utilizes Machine Learning and Metaheuristic Evolutionary Algorithms to prune and construct high-quality geometric $t$-spanner graphs on real-world urban topologies.
+
+---
+
+## 📊 Performance & Optimization Results
+### 1. Evolutionary Benchmark (GA vs. PSO vs. DE vs. RS)
+We benchmarked four metaheuristic strategies to optimize hyperparameters. The Genetic Algorithm (GA) achieved the superior Fitness Score, demonstrating faster convergence and higher stability.
+![Benchmark Convergence](benchmark_convergence.png)
+
+### 2. Topological Pruning Visualization (Eindhoven, NL)
+Interactive GIS visualization showing the AI-pruned network. The model successfully identified and pruned redundant edges while maintaining the integrity of the critical routing arteries.
+![Pruned Graph](final_pruned_graph.png)
+
+### 3. Confusion Matrix & Feature Importance
+Our Random Forest classifier, tuned by GA, demonstrates high precision in identifying "Spanner Edges" vs. "Pruned Edges".
+![Confusion Matrix](final_research_matrix.png)
 
 ---
 
 ## 🚀 Key Performance Indicators (KPIs)
-*   **0.8452 ROC-AUC Score** achieved on the real-world road network of Eindhoven, NL (12,000+ nodes) using global **PageRank** topological features.
-*   **0.7868 Evolutionary Fitness** achieved via a custom Genetic Algorithm optimizing the structural pruning classifier.
-*   **14x Acceleration** in shortest-path routing queries by minimizing edge search spaces without topological distortion.
+* **Best Fitness (GA):** 0.7868 (ROC-AUC: 0.8427, Recall: 0.7159)
+* **Pruning Efficiency:** ~30% reduction in edge density.
+* **Query Acceleration:** 14x latency reduction for shortest-path queries.
 
 ---
 
-## 📊 Metaheuristic Benchmark & Convergence
-To validate the optimization performance, a comparative study was conducted evaluating four metaheuristic search strategies across identical model evaluation budgets:
-
-![Benchmark Convergence](benchmark_convergence.png)
-
-### Best Fitness Achieved ($0.5 \cdot \text{AUC} + 0.5 \cdot \text{Recall}_{\text{Pruned}}$)
-*   **Genetic Algorithm (GA):** **0.7868** (Winner)
-*   **Particle Swarm Optimization (PSO):** 0.7836
-*   **Differential Evolution (DE):** 0.7814
-*   **Random Search (RS):** 0.7791
-
----
-
-## 🛠️ System Architecture & Features
-*   **Exact Ground Truth:** Generates exact $t$-spanners ($t=2.0$) using the computationally rigorous Greedy Spanner algorithm.
-*   **Topological Feature Engineering:** Extracts localized geometry alongside global graph centrality metrics (PageRank).
-*   **Class Imbalance Resolution:** Implements balanced class-weight cost functions to maximize edge pruning recall (64%) while maintaining network safety (88% connectivity).
-
----
-
-## 📁 Repository Structure
-*   `data_generator.py`: Graph loader (OSMnx) and exact Greedy Spanner label generator.
-*   `research_ml.py`: Balanced Random Forest classifier and feature importance evaluation.
-*   `hyperparameter_benchmark.py`: Suite evaluating GA, PSO, DE, and Random Search convergence.
-*   `benchmark_convergence.png`: Line chart plotting convergence history of the evaluated metaheuristics.
+## 🛠️ System Architecture
+1. **Exact Ground Truth:** Generates exact $t$-spanners using Greedy Spanner ($t=2.0$).
+2. **Metaheuristic Optimization:** Employs GA to fine-tune model hyperparameters for maximum pruning recall.
+3. **Global Topological Features:** Incorporates **PageRank** and **Edge Centrality** to capture graph-wide significance.
