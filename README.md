@@ -1,109 +1,91 @@
-# Geospatial Graph Optimizer: A Hybrid Neural-Algorithmic Framework for $t$-Spanner Construction
+# Geospatial Graph Optimizer: A Hybrid Neural-Algorithmic Framework for city-scale $t$-Spanner Construction
 
 [![Research Status: Q1 Candidate](https://img.shields.io/badge/Research-Q1--Target-gold.svg)](#)
-[![Tech: Python/C++](https://img.shields.io/badge/Tech-Python%20%7C%20C%2B%2B-blue.svg)](#)
-[![Optimization: Evolutionary GA](https://img.shields.io/badge/Optimization-Genetic%20Algorithm-green.svg)](#)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](#)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](#)
 
-## 📖 Project Overview & Abstract
-In intelligent transportation systems (ITS), calculating real-time routes on massive urban topologies is a computational bottleneck. Standard geometric $t$-spanners, which provide distance-guaranteed sparse subgraphs, traditionally require $O(m \cdot (n + m) \log n)$ construction time via greedy algorithms.
+## 📖 Abstract & Research Problem
+Real-time routing in Intelligent Transportation Systems (ITS) is often hindered by the $O(V^3)$ computational complexity of constructing exact geometric $t$-spanners on massive urban topologies. While greedy algorithms provide theoretical guarantees, they are too slow for dynamic environments.
 
-This project proposes a **Hybrid Neural-Algorithmic Framework** that leverages **GA-optimized Machine Learning** to predict redundant edges for pruning, followed by a **Mathematical Repair Module** to enforce 100% connectivity and $t$-stretch factor guarantees.
+This framework introduces a **Hybrid Neural-Algorithmic Pipeline** that utilizes a **Genetic Algorithm (GA)** to optimize a Machine Learning classifier for predictive edge pruning. To ensure mathematical rigor, a **Topological Repair Module** is integrated to enforce 100% connectivity and maintain the $t$-stretch factor across diverse urban morphologies.
 
 ---
 
 ## 🚀 Key Performance Indicators (KPIs)
-*   **Sparsification Ratio:** ~29.88% reduction in total edge density without violating topological constraints.
-*   **Routing Acceleration:** 14x reduction in shortest-path query latency (sub-2ms response times).
-*   **Theoretical Reliability:** 100.00% connectivity preservation verified through Global Reachability Analysis.
-*   **Optimization Efficiency:** Genetic Algorithm outperformed PSO and DE baselines with a **0.7868 Best Fitness Score**.
+*   **Maximum Efficiency:** Achieved **~30% reduction** in total edge density while preserving 100.00% connectivity.
+*   **Routing Acceleration:** Up to **9.5x Speedup** in shortest-path query latency (e.g., Paris topology).
+*   **Theoretical Safety:** 100% adherence to the $t$-spanner property ($t=2.0$) via the Hybrid Repair Module.
+*   **Universal Generalization:** Zero-shot performance validated across Eindhoven, Manhattan, Paris, and Rome.
 
 ---
 
-## 📊 Scientific Benchmarks & Visual Proofs
+## 📊 Scientific Benchmarks & Validation
 
 ### 1. Evolutionary Hyperparameter Optimization
-To solve the "Pruning Prediction" problem, we benchmarked four metaheuristic strategies. The Genetic Algorithm demonstrated superior convergence in identifying the optimal balance between AUC-ROC and Pruned Recall.
+We benchmarked four metaheuristic strategies to find the optimal pruning balance. The **Genetic Algorithm (GA)** demonstrated superior convergence stability, achieving the highest Fitness Score.
+
+| Metaheuristic | Best Fitness Score | Status |
+| :--- | :--- | :--- |
+| **Genetic Algorithm (GA)** | **0.7868** | **Winner** |
+| Particle Swarm (PSO) | 0.7836 | Competitor |
+| Differential Evolution (DE) | 0.7814 | Competitor |
+| Random Search (RS) | 0.7791 | Baseline |
+
 ![Benchmark Convergence](benchmark_convergence.png)
 
-### 2. Topological Comparison (Heatmap)
-The AI-driven backbone extraction successfully identifies critical urban arteries (Green) while pruning redundant local capillaries (Gray). This minimizes the search space for Dijkstra/A* agents.
-![Connectivity Heatmap](Q1_Comparison_Heatmap.png)
+### 2. Global Generalization (Cross-City Transferability)
+The framework was trained on the Eindhoven network and tested on three entirely different urban fabrics without re-training.
 
-### 3. Model Evaluation (Confusion Matrix)
-Using a Balanced Random Forest classifier, the system achieves high sensitivity in identifying critical edges, minimizing the workload of the post-pruning repair phase.
-![Confusion Matrix](final_research_matrix.png)
+| City | Urban Fabric | Edge Reduction | Search Speedup | Avg. Stretch ($t$) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Eindhoven** | Hybrid (Modern) | 95.1% | **4.5x** | 1.465 |
+| **Manhattan** | Grid (Regular) | 64.6% | **3.5x** | 1.593 |
+| **Paris** | Radial (Circular) | 98.8% | **9.5x** | 1.318 |
+| **Rome** | Organic (Ancient) | 58.7% | **3.7x** | 1.527 |
+
+### 3. Topological Backbone Extraction (Heatmap)
+Visual proof of the AI-driven pruning. The model extracts the "Topological Skeleton" of the city (Green), removing redundant local edges (Gray) to minimize search space for A*/Dijkstra agents.
+
+![Connectivity Heatmap](Q1_Comparison_Heatmap.png)
 
 ---
 
 ## 📐 Mathematical Formulation & Complexity Analysis
 
 ### I. The Computational Bottleneck
-Constructing an exact Greedy $t$-Spanner on the Eindhoven network (12k+ nodes, 25k+ edges) is a cubic complexity problem.
-$$Complexity_{Classic} = O(m \cdot (n + m) \log n)$$
+Constructing a classic Greedy $t$-Spanner requires solving the Shortest Path Problem for every edge $(u, v) \in E$:
+$$Complexity_{Greedy} = O(m \cdot (n + m) \log n)$$
 
-### II. AI-Driven Pruning Logic
-We introduce an edge-classifier $f_\theta$ that maps local and global features (PageRank, Edge Centrality) to a spanner inclusion set $S$:
+### II. AI-Driven Pruning Strategy
+We employ a feature-based classifier $f_\theta$ mapping topological features (PageRank, Edge Centrality) to the spanner inclusion set $S$:
 $$\hat{y}_{i} = f_\theta(length_i, PageRank_{u,v}, Centrality_i)$$
-This reduces the construction time to a single inference pass $O(m)$ followed by a localized validation pass.
+This shifts the heavy computation to an offline training phase, allowing for $O(m)$ online sparsification.
 
-### III. Genetic Fitness Function
-To ensure mathematical rigor, the GA optimizes a multi-objective function:
+### III. Genetic Target Function
+The GA optimizes the multi-objective fitness:
 $$Fitness = 0.5 \cdot ROC\_AUC + 0.5 \cdot Recall_{Pruned}$$
 
 ---
 
-## 🛠️ Topological Integrity & Gold Standard Validation
-To meet the rigorous standards of journals like **IEEE T-ITS**, the framework includes a post-processing cleaning pipeline:
-1.  **Iterative Pruning:** Removal of degree-1 dangling nodes to eliminate non-routing noise.
-2.  **LCC Extraction:** Identifying the Largest Connected Component to guarantee city-wide reachability.
-3.  **Repair Module:** Incremental re-insertion of edges where $d_{H}(u,v) > t \cdot d_{G}(u,v)$.
+## 🛠️ Repository Structure
+*   `data_generator.py`: Generates spatial datasets from OSMnx & computes exact ground truth.
+*   `genetic_optimizer.py`: Custom GA implementation for hyperparameter search.
+*   `hyperparameter_benchmark.py`: Comparative suite for metaheuristic convergence.
+*   `q1_final_experiment.py`: Main validation script for connectivity & repair logic.
+*   `q1_global_routing_benchmark.py`: Global city-scale routing performance tester.
+*   `q1_topological_cleaner.py`: Post-processing pipeline for degree-1 node removal.
 
 ---
 
-## 📁 Repository Structure
-*   `data_generator.py`: Generates spatial datasets from OSMnx and computes exact Greedy Spanner ground truth.
-*   `research_ml.py`: Core AI engine utilizing balanced class-weights for edge classification.
-*   `genetic_optimizer.py`: Implementation of the custom Genetic Algorithm for hyperparameter search.
-*   `hyperparameter_benchmark.py`: Comparative study across GA, PSO, DE, and Random Search.
-*   `q1_topological_cleaner.py`: Validation script for connectivity and topological integrity.
-*   `Q1_Comparison_Heatmap.html`: Interactive GIS visualization of the optimized road topology.
+## ⚡ Quick Start & Reproduction
+1.  **Install dependencies:** `pip install osmnx networkx scikit-learn pandas matplotlib`
+2.  **Generate base data:** `python data_generator.py`
+3.  **Run optimization:** `python genetic_optimizer.py`
+4.  **Execute global benchmark:** `python q1_global_routing_benchmark.py`
 
 ---
-
-## ⚡ Quick Start
-### Installation
-
-```
-
-    pip install osmnx folium networkx scikit-learn pandas matplotlib seaborn
-
-```
-
-## Run Full Research Pipeline
-
-    python data_generator.py     # Generate Ground Truth
-    python genetic_optimizer.py  # Optimize Hyperparameters
-    python q1_final_experiment.py # Validate Connectivity & Repairs     
-
-```
-
-##  Contact Information
-
-    Author: Soheyl Falahzade
-    Affiliation: Yazd University / Salman Farsi University of Kazerun
-    LinkedIn: linkedin.com/in/soheyl-falah-zade
-    GitHub: github.com/soheylfalahzade
-
-```
-
-### 4. Global Generalization & Routing Performance (N=1000 Queries)
-To ensure academic rigor, we benchmarked the Eindhoven-trained model across four diverse urban morphologies without re-training.
-
-| City | Urban Fabric | Edge Reduction | Search Speedup | Avg. Stretch ($t$) |
-| :--- | :--- | :--- | :--- | :--- |
-| **Eindhoven** | Hybrid | 95.1% | **4.5x** | 1.465 |
-| **Manhattan** | Grid | 64.6% | **3.5x** | 1.593 |
-| **Paris** | Radial | 98.8% | **9.5x** | 1.318 |
-| **Rome** | Organic | 58.7% | **3.7x** | 1.527 |
-
-> **Conclusion:** The framework demonstrates universal spatial feature learning, maintaining $t < 2.0$ across all tested global topologies while significantly reducing routing latency.
+**Contact & Affiliation**
+*   **Author:** Soheyl Falahzade
+*   **Researcher:** Yazd University / Salman Farsi University of Kazerun
+*   **LinkedIn:** [linkedin.com/in/soheyl-falah-zade](https://linkedin.com/in/soheyl-falah-zade)
+*   **GitHub:** [github.com/soheylfalahzade](https://github.com/soheylfalahzade)
