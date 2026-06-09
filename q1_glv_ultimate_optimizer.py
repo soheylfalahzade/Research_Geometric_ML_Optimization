@@ -242,7 +242,7 @@ def city_worker(args):
     removed_edges  = []
 
     for i, (u, v, k, d) in enumerate(edge_list):
-        if probs[i] > 0.5:
+        if probs[i] > 0.55:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed_edges.append({"u": u, "v": v,
@@ -299,7 +299,7 @@ def finetune_on_repairs(model, city_results):
         for i in range(n_edges):
             if i in repaired_set:
                 y_vals.append(1.0)           # مدل اشتباه کرده — باید ۱ باشد
-            elif probs[i] > 0.5:
+            elif probs[i] > 0.55:
                 y_vals.append(1.0)           # درست تشخیص داده
             else:
                 y_vals.append(0.0)
@@ -344,7 +344,7 @@ def compute_final_metrics(model, res):
     removed = []
 
     for i, (u, v, k, d) in enumerate(edge_list):
-        if final_probs[i] > 0.5:
+        if final_probs[i] > 0.55:
             G_opt.add_edge(u, v, length=d["length"])
         else:
             removed.append({"u": u, "v": v, "length": d["length"],
