@@ -480,7 +480,7 @@ def main():
         plt.plot(sorted_s, y_vals, label=f"{res['City']} (Max: {res['Max Stretch']})", lw=2.5)
     plt.axvline(1.5, color='red', linestyle='--', label='Limit (t=1.5)')
     plt.title("Empirical CDF of Directed Global Stretch", fontsize=14, fontweight='bold')
-    plt.xlabel("Stretch Ratio ($d_{H}/d_{G}$)"); plt.ylabel("P(Stretch $\leq$ x)"); plt.legend(); plt.grid(alpha=0.3)
+    plt.xlabel(r"Stretch Ratio ($d_{H}/d_{G}$)"); plt.ylabel(r"P(Stretch $\leq$ x)"); plt.legend(); plt.grid(alpha=0.3)
     plt.savefig('q1_global_stretch_cdf.png', dpi=300)
 
     # ۲. نمودار پایداری یادگیری مداوم ( Gap 3 Proof)
@@ -496,7 +496,7 @@ def main():
     for res in final_results:
         plt.hist(res['_asymmetry'], bins=30, alpha=0.5, label=f"{res['City']} Asymmetry")
     plt.title("Visual Proof of Directed Traffic Asymmetry (Gap 7)", fontsize=14, fontweight='bold')
-    plt.xlabel("Mean Route Difference |d(u,v) - d(v,u)| (meters)"); plt.ylabel("Frequency"); plt.legend(); plt.grid(alpha=0.3)
+    plt.xlabel(r"Mean Route Difference |d(u,v) - d(v,u)| (meters)"); plt.ylabel("Frequency"); plt.legend(); plt.grid(alpha=0.3)
     plt.savefig('q1_directed_asymmetry_proof.png', dpi=300)
 
     print("\n✓ Project Fully Validated. 3 Plots saved. Status: Ready for Submission.")
