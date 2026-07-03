@@ -180,17 +180,32 @@ def _check_one_directed_edge(args):
 
 def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
     """
-    ترمیم دسته‌ای-ترتیبی جهت‌دار برای جلوگیری از تجمع خطای محلی و حفظ هرس بالا.
+    ترمیم مستقل مکانی (Spatially Independent Batch Repair) جهت حل باگ بیش‌بازسازی موازی
+    و افزایش نرخ هرس گراف با رعایت قوانین جهت‌دار.
     """
     repaired_G = G_sparse.copy()
     repairs = []
     candidates = sorted(removed_edges_info, key=lambda e: e["length"])
-    
-    num_candidates = len(candidates)
-    for start_idx in range(0, num_candidates, GLV_BATCH_SIZE):
-        batch = candidates[start_idx : start_idx + GLV_BATCH_SIZE]
-        args_list = [(repaired_G, edge, t_limit) for edge in batch]
+
+    while candidates:
+        batch = []
+        used_nodes = set()
+        remaining_candidates = []
         
+        # انتخاب لبه‌هایی که تداخل گره مکانی با هم ندارند
+        for edge in candidates:
+            u, v = edge["u"], edge["v"]
+            if len(batch) < GLV_BATCH_SIZE and u not in used_nodes and v not in used_nodes:
+                batch.append(edge)
+                used_nodes.add(u)
+                used_nodes.add(v)
+            else:
+                remaining_candidates.append(edge)
+                
+        if not batch:
+            break
+            
+        args_list = [(repaired_G, edge, t_limit) for edge in batch]
         with ThreadPoolExecutor(max_workers=NUM_DIJKSTRA_THREADS) as pool:
             needs_repair_map = dict(pool.map(_check_one_directed_edge, args_list))
             
@@ -199,6 +214,8 @@ def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
                 repaired_G.add_edge(edge["u"], edge["v"], length=edge["length"])
                 repairs.append(edge["idx"])
                 
+        candidates = remaining_candidates
+        
     return repaired_G, repairs
 
 
