@@ -1,3 +1,6 @@
 *.csv
 __pycache__/
 *.pyc
+
+# CSV هایی که استثنائاً باید commit بشن (کوچیک و نتیجه‌ی نهایی هستن)
+!results/data/Q1_CLEAN_Spanner.csv
