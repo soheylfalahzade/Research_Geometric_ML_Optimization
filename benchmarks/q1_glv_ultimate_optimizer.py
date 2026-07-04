@@ -166,13 +166,15 @@ def train_base_model(csv_path="spanner_dataset_pro.csv", weights_path="best_base
 # ۳. پروتکل ترمیم جهت‌دار و دایجسترا موازی (Gap 7)
 # ──────────────────────────────────────────────
 def _check_one_directed_edge(args):
-    """بررسی نیاز به ترمیم یک یال با رعایت قوانین یک‌طرفه (Directed Dijkstra)"""
+    """بررسی نیاز به ترمیم — نسخه‌ی بهینه‌شده با cutoff واقعی (طبق مقاله)."""
     repaired_G, edge, t_limit = args
     u, v, w = edge["u"], edge["v"], edge["length"]
+    cutoff = t_limit * w
     try:
-        # استفاده از دایجسترای جهت‌دار (Strict Directed Routing)
-        dist = nx.shortest_path_length(repaired_G, u, v, weight="length")
-        return edge["idx"], dist > t_limit * w
+        lengths = nx.single_source_dijkstra_path_length(
+            repaired_G, u, cutoff=cutoff, weight="length"
+        )
+        return edge["idx"], v not in lengths
     except (nx.NetworkXNoPath, nx.NodeNotFound):
         return edge["idx"], True
     except Exception:
