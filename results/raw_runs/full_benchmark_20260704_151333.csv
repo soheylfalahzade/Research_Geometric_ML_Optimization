@@ -1,0 +1,2 @@
+city,num_nodes,num_edges,t_limit,greedy_time_sec,greedy_sparsification_pct,greedy_max_stretch,greedy_scc_components,gnn_n_seeds,gnn_time_mean_sec,gnn_time_std_sec,gnn_sparsification_mean_pct,gnn_sparsification_std_pct,gnn_max_stretch_mean,gnn_max_stretch_worst,gnn_repairs_mean,gnn_scc_all_connected,speedup_mean,timestamp
+Eindhoven,7881,19051,1.5,1.956261950006592,7.46942417720855,1.478301972466023,1,2,1.8107685664945166,0.06917174350382993,5.199202141619863,0.023620807306701685,1.4936947992128833,1.4969664312678423,2372.5,True,1.080348966844359,2026-07-04T15:14:00.509121

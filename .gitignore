@@ -4,3 +4,6 @@ __pycache__/
 
 # CSV هایی که استثنائاً باید commit بشن (کوچیک و نتیجه‌ی نهایی هستن)
 !results/data/Q1_CLEAN_Spanner.csv
+
+# نتایج خام بنچمارک - این‌ها منبع حقیقت جدول‌های مقاله هستن، باید commit بشن
+!results/raw_runs/*.csv
