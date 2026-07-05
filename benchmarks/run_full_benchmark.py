@@ -1,41 +1,16 @@
 """
-run_full_benchmark.py
-======================
-هدف: جایگزینی تخمین معیوب `simulate_greedy_time_for_city` (که در
-q1_master_benchmarker.py استفاده شده بود و Greedy واقعی را اجرا نمی‌کرد)
-با اندازه‌گیری واقعی و صادقانه‌ی هر دو روش روی هر ۴ شهر کامل.
-
-منطق:
-  - الگوریتم Greedy Spanner واقعی (از test_sota_comparison.py، که درست
-    پیاده‌سازی شده بود) روی هر شهر یک‌بار اجرا می‌شود. این الگوریتم
-    قطعی (deterministic) است، پس تکرار چندباره فقط نویز اندازه‌گیری
-    اضافه می‌کند، نه تنوع آماری واقعی.
-  - روش پیشنهادی (GNN + MC-Dropout + GLV-Repair) به دلیل نمونه‌برداری
-    تصادفی MC-Dropout، در هر seed می‌تواند کمی متفاوت باشد. پس این بخش
-    را N_SEEDS بار با seedهای متفاوت اجرا می‌کنیم و mean ± std گزارش
-    می‌شود.
-  - نتیجه‌ی هر شهر بلافاصله پس از اتمام در CSV ذخیره می‌شود
-    (checkpointing) — اگر اجرا روی Rome (که می‌تواند خیلی طول بکشد)
-    قطع شد، نتایج شهرهای قبلی از دست نمی‌روند.
-  - یک فایل لاگ با timestamp دقیق هر مرحله را ثبت می‌کند تا بتوانی شب
-    اجرا کنی و صبح ببینی دقیقاً کجا هست یا کجا متوقف شده.
+run_full_benchmark.py (نسخه‌ی ۲ — با Edge Betweenness Centrality واقعی)
+==========================================================================
+همان منطق نسخه‌ی قبلی، با یک تفاوت کلیدی: ویژگی centrality اکنون واقعاً
+محاسبه و به مدل داده می‌شود (نه فقط طول یال). centrality فقط یک‌بار به
+ازای هر شهر محاسبه می‌شود (نه به‌ازای هر seed) چون به مدل بستگی ندارد.
 
 نحوه‌ی اجرا (از ریشه‌ی پروژه):
     python benchmarks/run_full_benchmark.py
-
-    # برای اجرای فقط یک شهر خاص (مثلاً برای تست سریع قبل از Rome):
-    python benchmarks/run_full_benchmark.py --city Eindhoven
-
-    # برای تغییر تعداد seed های GNN:
-    python benchmarks/run_full_benchmark.py --seeds 5
-
-⚠️ هشدار: اجرای Greedy واقعی روی Rome (~42,000 گره) می‌تواند چند ساعت
-طول بکشد. توصیه می‌شود شب اجرا شود، یا با nohup/screen در پس‌زمینه.
+    python benchmarks/run_full_benchmark.py --city Eindhoven --seeds 2
 """
 
 import argparse
-import json
-import os
 import sys
 import time
 import traceback
@@ -50,9 +25,6 @@ import osmnx as ox
 from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra, connected_components
 
-# ──────────────────────────────────────────────
-# مسیرها — مستقل از اینکه اسکریپت از کجا اجرا میشه
-# ──────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RESULTS_DIR = PROJECT_ROOT / "results"
 RAW_RUNS_DIR = RESULTS_DIR / "raw_runs"
@@ -61,13 +33,14 @@ MODELS_DIR = RESULTS_DIR / "models"
 RAW_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-# اضافه کردن benchmarks/ به sys.path تا بتونیم از q1_glv_ultimate_optimizer وارد کنیم
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from q1_glv_ultimate_optimizer import (  # noqa: E402
     GeometricEdgeSAGE,
     glv_repair_directed,
     train_base_model,
+    compute_edge_centrality,
+    build_edge_features,
     CITIES,
     PRUNING_THRESHOLD,
     MC_SAMPLES,
@@ -79,7 +52,6 @@ CSV_FILE = RAW_RUNS_DIR / f"full_benchmark_{datetime.now().strftime('%Y%m%d_%H%M
 
 
 def log(msg: str):
-    """چاپ در ترمینال + ذخیره در فایل لاگ با timestamp."""
     line = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {msg}"
     print(line, flush=True)
     with open(LOG_FILE, "a", encoding="utf-8") as f:
@@ -87,17 +59,11 @@ def log(msg: str):
 
 
 def append_result_row(row: dict):
-    """اضافه‌کردن فوری یک ردیف نتیجه به CSV (checkpointing)."""
     df_row = pd.DataFrame([row])
     write_header = not CSV_FILE.exists()
     df_row.to_csv(CSV_FILE, mode="a", header=write_header, index=False)
 
 
-# ──────────────────────────────────────────────
-# ۱. بارگذاری گراف شهر + استخراج بزرگ‌ترین SCC
-#    (دقیقاً همون منطقی که در city_worker استفاده شده،
-#    تا مقایسه‌ی Greedy و GNN روی گراف یکسان انجام بشه)
-# ──────────────────────────────────────────────
 def load_city_scc(city_query: str, city_label: str) -> nx.DiGraph:
     log(f"[{city_label}] Downloading graph from OSMnx...")
     G_raw = ox.graph_from_place(city_query, network_type="drive")
@@ -112,13 +78,8 @@ def load_city_scc(city_query: str, city_label: str) -> nx.DiGraph:
     return G
 
 
-# ──────────────────────────────────────────────
-# ۲. الگوریتم Greedy Spanner واقعی (از test_sota_comparison.py،
-#    که درست پیاده‌سازی شده بود — نه شبیه‌سازی معیوب)
-# ──────────────────────────────────────────────
 def run_classic_greedy_spanner(G: nx.DiGraph, t_limit: float = GLV_T_LIMIT):
-    log(f"  [Greedy] Starting classic greedy construction on {G.number_of_edges()} edges "
-        f"(this can take a long time for large cities)...")
+    log(f"  [Greedy] Starting classic greedy construction on {G.number_of_edges()} edges...")
     t0 = time.perf_counter()
 
     edges = sorted(G.edges(data=True), key=lambda x: x[2]["length"])
@@ -127,7 +88,7 @@ def run_classic_greedy_spanner(G: nx.DiGraph, t_limit: float = GLV_T_LIMIT):
 
     checked = 0
     total = len(edges)
-    progress_interval = max(1000, total // 20)  # حداکثر ۲۰ خط لاگ پیشرفت
+    progress_interval = max(1000, total // 20)
     for u, v, d in edges:
         w = d["length"]
         try:
@@ -149,29 +110,20 @@ def run_classic_greedy_spanner(G: nx.DiGraph, t_limit: float = GLV_T_LIMIT):
     return H, elapsed
 
 
-# ──────────────────────────────────────────────
-# ۳. روش پیشنهادی (GNN + MC-Dropout + GLV-Repair)
-# ──────────────────────────────────────────────
-def run_our_gnn_framework(G: nx.DiGraph, model: GeometricEdgeSAGE, seed: int):
+def run_our_gnn_framework(G: nx.DiGraph, model: GeometricEdgeSAGE, edge_list, x_local, edge_idx,
+                           edge_attr_loc, seed: int):
+    """
+    اجرای پایپ‌لاین GNN. توجه: ویژگی‌های ثابت گراف (x_local, edge_idx,
+    edge_attr_loc که شامل centrality است) از بیرون پاس داده می‌شوند تا
+    محاسبه‌ی سنگین centrality فقط یک‌بار به‌ازای هر شهر انجام شود، نه
+    به‌ازای هر seed.
+    """
     torch.manual_seed(seed)
     np.random.seed(seed)
 
     t0 = time.perf_counter()
 
-    pagerank = nx.pagerank(G, weight="length")
-    edge_list = list(G.edges(data=True))
-    node_map = {n: i for i, n in enumerate(G.nodes())}
-
-    raw_node = np.array([[G.in_degree(n), G.out_degree(n), pagerank.get(n, 1e-4)] for n in G.nodes()])
-    x_local = torch.tensor(StandardScaler().fit_transform(raw_node), dtype=torch.float)
-    edge_idx = torch.tensor(
-        [[node_map[u] for u, v, d in edge_list], [node_map[v] for u, v, d in edge_list]],
-        dtype=torch.long,
-    )
-    raw_ea = np.array([[d["length"]] for u, v, d in edge_list])
-    edge_attr_loc = torch.tensor(StandardScaler().fit_transform(raw_ea), dtype=torch.float)
-
-    model.train()  # فعال نگه‌داشتن Dropout برای MC-Sampling
+    model.train()
     mc_preds = []
     with torch.no_grad():
         for _ in range(MC_SAMPLES):
@@ -198,9 +150,6 @@ def run_our_gnn_framework(G: nx.DiGraph, model: GeometricEdgeSAGE, seed: int):
     return G_final, elapsed, len(repairs)
 
 
-# ──────────────────────────────────────────────
-# ۴. محاسبه‌ی stretch و SCC نهایی (برای اثبات درستی، نه فقط سرعت)
-# ──────────────────────────────────────────────
 def compute_stretch_and_scc(G_orig: nx.DiGraph, G_final: nx.DiGraph, num_sources: int = 500, seed: int = 42):
     nodes = list(G_orig.nodes())
     if len(nodes) < 2:
@@ -224,24 +173,37 @@ def compute_stretch_and_scc(G_orig: nx.DiGraph, G_final: nx.DiGraph, num_sources
     return stretches, n_scc
 
 
-# ──────────────────────────────────────────────
-# ۵. اجرای کامل برای یک شهر
-# ──────────────────────────────────────────────
 def benchmark_one_city(city_label: str, city_query: str, model: GeometricEdgeSAGE, n_seeds: int):
     log(f"\n{'='*70}\nCITY: {city_label}\n{'='*70}")
 
     G = load_city_scc(city_query, city_label)
 
-    # --- Greedy واقعی (یک‌بار، چون قطعی است) ---
+    # --- Greedy واقعی (یک‌بار) ---
     H_greedy, time_greedy = run_classic_greedy_spanner(G)
     spars_greedy = (1 - H_greedy.number_of_edges() / G.number_of_edges()) * 100
     stretches_greedy, scc_greedy = compute_stretch_and_scc(G, H_greedy)
 
-    # --- روش پیشنهادی (چند seed برای آمار) ---
+    # --- ویژگی‌های ثابت گراف (شامل centrality) — فقط یک‌بار محاسبه میشه ---
+    log(f"  [Features] Computing PageRank and Edge Betweenness Centrality...")
+    pagerank = nx.pagerank(G, weight="length")
+    edge_list = list(G.edges(data=True))
+    node_map = {n: i for i, n in enumerate(G.nodes())}
+    raw_node = np.array([[G.in_degree(n), G.out_degree(n), pagerank.get(n, 1e-4)] for n in G.nodes()])
+    x_local = torch.tensor(StandardScaler().fit_transform(raw_node), dtype=torch.float)
+    edge_idx = torch.tensor(
+        [[node_map[u] for u, v, d in edge_list], [node_map[v] for u, v, d in edge_list]],
+        dtype=torch.long,
+    )
+    centrality_dict = compute_edge_centrality(G, weight="length")
+    edge_attr_loc = build_edge_features(edge_list, centrality_dict)
+
+    # --- روش پیشنهادی (چند seed) ---
     gnn_times, gnn_spars, gnn_repairs, gnn_max_stretch, gnn_scc = [], [], [], [], []
     for seed in range(n_seeds):
         log(f"  [GNN] seed={seed} ...")
-        G_final, elapsed, n_repairs = run_our_gnn_framework(G, model, seed)
+        G_final, elapsed, n_repairs = run_our_gnn_framework(
+            G, model, edge_list, x_local, edge_idx, edge_attr_loc, seed
+        )
         spars = (1 - G_final.number_of_edges() / G.number_of_edges()) * 100
         stretches, scc = compute_stretch_and_scc(G, G_final, seed=seed)
 
@@ -276,6 +238,7 @@ def benchmark_one_city(city_label: str, city_query: str, model: GeometricEdgeSAG
         "gnn_repairs_mean": float(np.mean(gnn_repairs)),
         "gnn_scc_all_connected": all(s == 1 for s in gnn_scc),
         "speedup_mean": speedup_mean,
+        "uses_edge_centrality": True,
         "timestamp": datetime.now().isoformat(),
     }
 
@@ -288,32 +251,25 @@ def benchmark_one_city(city_label: str, city_query: str, model: GeometricEdgeSAG
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--city", type=str, default=None,
-                         help="فقط یک شهر خاص را اجرا کن (Eindhoven/Manhattan/Paris/Rome). پیش‌فرض: همه.")
-    parser.add_argument("--seeds", type=int, default=5,
-                         help="تعداد seed برای اجرای روش GNN (برای mean±std).")
+    parser.add_argument("--city", type=str, default=None)
+    parser.add_argument("--seeds", type=int, default=5)
     args = parser.parse_args()
 
-    log(f"Starting full benchmark run. Log: {LOG_FILE}")
+    log(f"Starting full benchmark run (v2, with edge centrality). Log: {LOG_FILE}")
     log(f"Results CSV: {CSV_FILE}")
     log(f"Config: t_limit={GLV_T_LIMIT}, pruning_threshold={PRUNING_THRESHOLD}, "
         f"mc_samples={MC_SAMPLES}, seeds={args.seeds}")
 
-    # --- بارگذاری یا آموزش مدل پایه ---
     weights_path = MODELS_DIR / "best_base_model.pt"
     data_csv = DATA_DIR / "spanner_dataset_pro.csv"
     if not data_csv.exists():
-        # fallback: شاید هنوز در ریشه‌ی پروژه باشد
         alt = PROJECT_ROOT / "spanner_dataset_pro.csv"
         data_csv = alt if alt.exists() else data_csv
 
-    if weights_path.exists():
-        log(f"Loading existing base model weights from {weights_path}")
-        model = GeometricEdgeSAGE()
-        model.load_state_dict(torch.load(weights_path, weights_only=True, map_location="cpu"))
-    else:
-        log(f"No existing weights found. Training base model from {data_csv}...")
-        model = train_base_model(csv_path=str(data_csv), weights_path=str(weights_path))
+    # ⚠️ چون معماری مدل تغییر کرده (edge_attr_dim از ۱ به ۲)، وزن‌های
+    # قدیمی دیگر سازگار نیستند. باید دوباره train شود.
+    log(f"Re-training base model (architecture changed: edge_attr now includes centrality)...")
+    model = train_base_model(csv_path=str(data_csv), weights_path=str(weights_path))
 
     cities_to_run = CITIES if args.city is None else {args.city: CITIES[args.city]}
 
@@ -323,7 +279,6 @@ def main():
         except Exception as e:
             log(f"❌ ERROR processing {city_label}: {e}")
             log(traceback.format_exc())
-            log(f"Continuing to next city...")
             continue
 
     log("\n✅ ALL DONE. Final results:")
@@ -331,7 +286,6 @@ def main():
         df = pd.read_csv(CSV_FILE)
         log("\n" + df.to_string(index=False))
     log(f"\nنتایج نهایی در: {CSV_FILE}")
-    log("هیچ عددی رو دستی توی مقاله یا README ننویس — مستقیم از این CSV بخون.")
 
 
 if __name__ == "__main__":
