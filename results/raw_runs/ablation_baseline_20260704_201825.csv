@@ -1,0 +1,13 @@
+city,variant,seed,sparsification_pct,max_stretch,n_repairs,scc_connected
+Rome,Full_Proposed (MC-Dropout + GA-threshold + Centrality),0,19.437360355683943,1.4941393032354373,13688,True
+Rome,Ablation_No_MC_Dropout,0,22.713218533480784,1.4941393032354373,15948,True
+Rome,Ablation_Non_GA_Threshold(0.50),0,32.824031235189246,1.4941393032354373,22630,True
+Rome,Baseline_Random_Pruning(matched_sparsity),0,19.207158816493262,1.431790360106129,11872,True
+Rome,Full_Proposed (MC-Dropout + GA-threshold + Centrality),1,19.50732356857523,1.4807009257906192,13731,True
+Rome,Ablation_No_MC_Dropout,1,22.713218533480784,1.4807009257906192,15948,True
+Rome,Ablation_Non_GA_Threshold(0.50),1,32.85562752488208,1.4836406333295977,22680,True
+Rome,Baseline_Random_Pruning(matched_sparsity),1,19.60211243765375,1.4910624366847747,12171,True
+Rome,Full_Proposed (MC-Dropout + GA-threshold + Centrality),2,19.437360355683943,1.4916024246602841,13662,True
+Rome,Ablation_No_MC_Dropout,2,22.713218533480784,1.4916024246602841,15948,True
+Rome,Ablation_Non_GA_Threshold(0.50),2,32.809361529260414,1.4826890243317659,22628,True
+Rome,Baseline_Random_Pruning(matched_sparsity),2,19.53779141935047,1.4790893137333474,12148,True

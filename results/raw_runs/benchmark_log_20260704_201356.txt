@@ -1,0 +1,35 @@
+[2026-07-04 20:13:56] Starting full benchmark run (v2, with edge centrality). Log: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/benchmark_log_20260704_201356.txt
+[2026-07-04 20:13:56] Results CSV: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/full_benchmark_20260704_201356.csv
+[2026-07-04 20:13:56] Config: t_limit=1.5, pruning_threshold=0.4, mc_samples=10, seeds=2
+[2026-07-04 20:13:56] Re-training base model (architecture changed: edge_attr now includes centrality)...
+[2026-07-04 20:14:13] 
+======================================================================
+CITY: Manhattan
+======================================================================
+[2026-07-04 20:14:13] [Manhattan] Downloading graph from OSMnx...
+[2026-07-04 20:14:17] [Manhattan] SCC extraction: 4625 -> 4540 nodes, 9766 edges.
+[2026-07-04 20:14:17]   [Greedy] Starting classic greedy construction on 9766 edges...
+[2026-07-04 20:14:17]   [Greedy] Progress: 1000/9766 edges (10.2%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 2000/9766 edges (20.5%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 3000/9766 edges (30.7%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 4000/9766 edges (41.0%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 5000/9766 edges (51.2%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 6000/9766 edges (61.4%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 7000/9766 edges (71.7%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 8000/9766 edges (81.9%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Progress: 9000/9766 edges (92.2%) | elapsed: 0.0 min
+[2026-07-04 20:14:17]   [Greedy] Done in 0.74s (0.01 min).
+[2026-07-04 20:14:18]   [Features] Computing PageRank and Edge Betweenness Centrality...
+[2026-07-04 20:14:27]   [GNN] seed=0 ...
+[2026-07-04 20:14:28]   [GNN] seed=0 | time=0.2088s | sparsification=0.85% | max_stretch=1.452 | SCC=1
+[2026-07-04 20:14:28]   [GNN] seed=1 ...
+[2026-07-04 20:14:28]   [GNN] seed=1 | time=0.1064s | sparsification=0.79% | max_stretch=1.424 | SCC=1
+[2026-07-04 20:14:28] [Manhattan] ✅ Saved to full_benchmark_20260704_201356.csv
+[2026-07-04 20:14:28] [Manhattan] SUMMARY: Greedy=0.74s | GNN=0.1576s±0.0512 | Speedup=4.68x
+[2026-07-04 20:14:28] 
+✅ ALL DONE. Final results:
+[2026-07-04 20:14:28] 
+     city  num_nodes  num_edges  t_limit  greedy_time_sec  greedy_sparsification_pct  greedy_max_stretch  greedy_scc_components  gnn_n_seeds  gnn_time_mean_sec  gnn_time_std_sec  gnn_sparsification_mean_pct  gnn_sparsification_std_pct  gnn_max_stretch_mean  gnn_max_stretch_worst  gnn_repairs_mean  gnn_scc_all_connected  speedup_mean  uses_edge_centrality                  timestamp
+Manhattan       4540       9766      1.5         0.737649                   1.771452            1.452073                      1            2           0.157639          0.051192                     0.819169                    0.030719              1.438031               1.452073            1854.5                   True      4.679343                  True 2026-07-04T20:14:28.873926
+[2026-07-04 20:14:28] 
+نتایج نهایی در: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/full_benchmark_20260704_201356.csv

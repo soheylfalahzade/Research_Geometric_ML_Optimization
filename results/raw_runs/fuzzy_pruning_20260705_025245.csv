@@ -1,0 +1,16 @@
+city,variant,seed,sparsification_pct,max_stretch,n_repairs,scc_connected
+Eindhoven,E_Fuzzy_Pruning,0,14.062253949923889,1.4969664312678423,2218,True
+Eindhoven,C_GA_Threshold_plus_Feedback,0,14.062253949923889,1.219415934885855,2621,True
+Eindhoven,D_Random_Pruning(matched),0,14.062253949923889,1.4263555572714985,2433,True
+Eindhoven,E_Fuzzy_Pruning,1,14.1567371791507,1.4743140546797526,2194,True
+Eindhoven,C_GA_Threshold_plus_Feedback,1,14.1567371791507,1.4025608601376518,2636,True
+Eindhoven,D_Random_Pruning(matched),1,14.1567371791507,1.3791431191221264,2445,True
+Eindhoven,E_Fuzzy_Pruning,2,14.098997427956538,1.4904231671579242,2201,True
+Eindhoven,C_GA_Threshold_plus_Feedback,2,14.098997427956538,1.3496632853335617,2623,True
+Eindhoven,D_Random_Pruning(matched),2,14.098997427956538,1.4312994936611623,2432,True
+Eindhoven,E_Fuzzy_Pruning,3,14.02551047189124,1.4601620029043603,2173,True
+Eindhoven,C_GA_Threshold_plus_Feedback,3,14.02551047189124,1.2833960409959555,2611,True
+Eindhoven,D_Random_Pruning(matched),3,14.02551047189124,1.3935882109434625,2425,True
+Eindhoven,E_Fuzzy_Pruning,4,14.109495564537294,1.4904231671579242,2146,True
+Eindhoven,C_GA_Threshold_plus_Feedback,4,14.109495564537294,1.0613682696768783,2625,True
+Eindhoven,D_Random_Pruning(matched),4,14.109495564537294,1.4886874543404183,2450,True
