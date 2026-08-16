@@ -1,0 +1,163 @@
+[2026-07-06 14:46:26] Starting full benchmark run (v2, with edge centrality). Log: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/benchmark_log_20260706_144626.txt
+[2026-07-06 14:46:26] Results CSV: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/full_benchmark_20260706_144626.csv
+[2026-07-06 14:46:26] Config: t_limit=1.5, pruning_threshold=0.4, mc_samples=10, seeds=5
+[2026-07-06 14:46:26] Re-training base model (architecture changed: edge_attr now includes centrality)...
+[2026-07-06 14:46:46] 
+======================================================================
+CITY: Eindhoven
+======================================================================
+[2026-07-06 14:46:46] [Eindhoven] Downloading graph from OSMnx...
+[2026-07-06 14:46:50] [Eindhoven] SCC extraction: 7952 -> 7881 nodes, 19051 edges.
+[2026-07-06 14:46:50]   [Greedy] Starting classic greedy construction on 19051 edges...
+[2026-07-06 14:46:50]   [Greedy] Progress: 1000/19051 edges (5.2%) | elapsed: 0.0 min
+[2026-07-06 14:46:50]   [Greedy] Progress: 2000/19051 edges (10.5%) | elapsed: 0.0 min
+[2026-07-06 14:46:50]   [Greedy] Progress: 3000/19051 edges (15.7%) | elapsed: 0.0 min
+[2026-07-06 14:46:50]   [Greedy] Progress: 4000/19051 edges (21.0%) | elapsed: 0.0 min
+[2026-07-06 14:46:50]   [Greedy] Progress: 5000/19051 edges (26.2%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 6000/19051 edges (31.5%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 7000/19051 edges (36.7%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 8000/19051 edges (42.0%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 9000/19051 edges (47.2%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 10000/19051 edges (52.5%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 11000/19051 edges (57.7%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 12000/19051 edges (63.0%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 13000/19051 edges (68.2%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 14000/19051 edges (73.5%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 15000/19051 edges (78.7%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 16000/19051 edges (84.0%) | elapsed: 0.0 min
+[2026-07-06 14:46:51]   [Greedy] Progress: 17000/19051 edges (89.2%) | elapsed: 0.0 min
+[2026-07-06 14:46:52]   [Greedy] Progress: 18000/19051 edges (94.5%) | elapsed: 0.0 min
+[2026-07-06 14:46:52]   [Greedy] Progress: 19000/19051 edges (99.7%) | elapsed: 0.0 min
+[2026-07-06 14:46:52]   [Greedy] Done in 1.95s (0.03 min).
+[2026-07-06 14:46:53]   [Features] Computing PageRank and Edge Betweenness Centrality...
+[2026-07-06 14:47:12]   [GNN] seed=0 ...
+[2026-07-06 14:47:13]   [GNN] seed=0 | time=0.2686s | sparsification=4.13% | max_stretch=1.497 | SCC=1
+[2026-07-06 14:47:13]   [GNN] seed=1 ...
+[2026-07-06 14:47:14]   [GNN] seed=1 | time=0.1598s | sparsification=4.18% | max_stretch=1.490 | SCC=1
+[2026-07-06 14:47:14]   [GNN] seed=2 ...
+[2026-07-06 14:47:15]   [GNN] seed=2 | time=0.1561s | sparsification=4.22% | max_stretch=1.490 | SCC=1
+[2026-07-06 14:47:15]   [GNN] seed=3 ...
+[2026-07-06 14:47:15]   [GNN] seed=3 | time=0.2754s | sparsification=4.19% | max_stretch=1.490 | SCC=1
+[2026-07-06 14:47:15]   [GNN] seed=4 ...
+[2026-07-06 14:47:16]   [GNN] seed=4 | time=0.1703s | sparsification=4.19% | max_stretch=1.490 | SCC=1
+[2026-07-06 14:47:16] [Eindhoven] ✅ Saved to full_benchmark_20260706_144626.csv
+[2026-07-06 14:47:16] [Eindhoven] SUMMARY: Greedy=1.95s | GNN=0.2060s±0.0541 | Speedup=9.45x
+[2026-07-06 14:47:16] 
+======================================================================
+CITY: Manhattan
+======================================================================
+[2026-07-06 14:47:16] [Manhattan] Downloading graph from OSMnx...
+[2026-07-06 14:47:20] [Manhattan] SCC extraction: 4625 -> 4540 nodes, 9766 edges.
+[2026-07-06 14:47:20]   [Greedy] Starting classic greedy construction on 9766 edges...
+[2026-07-06 14:47:20]   [Greedy] Progress: 1000/9766 edges (10.2%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 2000/9766 edges (20.5%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 3000/9766 edges (30.7%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 4000/9766 edges (41.0%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 5000/9766 edges (51.2%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 6000/9766 edges (61.4%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 7000/9766 edges (71.7%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 8000/9766 edges (81.9%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Progress: 9000/9766 edges (92.2%) | elapsed: 0.0 min
+[2026-07-06 14:47:20]   [Greedy] Done in 0.74s (0.01 min).
+[2026-07-06 14:47:21]   [Features] Computing PageRank and Edge Betweenness Centrality...
+[2026-07-06 14:47:31]   [GNN] seed=0 ...
+[2026-07-06 14:47:31]   [GNN] seed=0 | time=0.0916s | sparsification=0.50% | max_stretch=1.497 | SCC=1
+[2026-07-06 14:47:31]   [GNN] seed=1 ...
+[2026-07-06 14:47:32]   [GNN] seed=1 | time=0.0891s | sparsification=0.50% | max_stretch=1.424 | SCC=1
+[2026-07-06 14:47:32]   [GNN] seed=2 ...
+[2026-07-06 14:47:32]   [GNN] seed=2 | time=0.0823s | sparsification=0.50% | max_stretch=1.338 | SCC=1
+[2026-07-06 14:47:32]   [GNN] seed=3 ...
+[2026-07-06 14:47:32]   [GNN] seed=3 | time=0.1977s | sparsification=0.50% | max_stretch=1.434 | SCC=1
+[2026-07-06 14:47:32]   [GNN] seed=4 ...
+[2026-07-06 14:47:33]   [GNN] seed=4 | time=0.0892s | sparsification=0.50% | max_stretch=1.390 | SCC=1
+[2026-07-06 14:47:33] [Manhattan] ✅ Saved to full_benchmark_20260706_144626.csv
+[2026-07-06 14:47:33] [Manhattan] SUMMARY: Greedy=0.74s | GNN=0.1100s±0.0440 | Speedup=6.74x
+[2026-07-06 14:47:33] 
+======================================================================
+CITY: Paris
+======================================================================
+[2026-07-06 14:47:33] [Paris] Downloading graph from OSMnx...
+[2026-07-06 14:47:39] [Paris] SCC extraction: 9417 -> 9236 nodes, 17891 edges.
+[2026-07-06 14:47:39]   [Greedy] Starting classic greedy construction on 17891 edges...
+[2026-07-06 14:47:39]   [Greedy] Progress: 1000/17891 edges (5.6%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 2000/17891 edges (11.2%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 3000/17891 edges (16.8%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 4000/17891 edges (22.4%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 5000/17891 edges (27.9%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 6000/17891 edges (33.5%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 7000/17891 edges (39.1%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 8000/17891 edges (44.7%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 9000/17891 edges (50.3%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 10000/17891 edges (55.9%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 11000/17891 edges (61.5%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 12000/17891 edges (67.1%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 13000/17891 edges (72.7%) | elapsed: 0.0 min
+[2026-07-06 14:47:39]   [Greedy] Progress: 14000/17891 edges (78.3%) | elapsed: 0.0 min
+[2026-07-06 14:47:40]   [Greedy] Progress: 15000/17891 edges (83.8%) | elapsed: 0.0 min
+[2026-07-06 14:47:40]   [Greedy] Progress: 16000/17891 edges (89.4%) | elapsed: 0.0 min
+[2026-07-06 14:47:41]   [Greedy] Progress: 17000/17891 edges (95.0%) | elapsed: 0.0 min
+[2026-07-06 14:47:42]   [Greedy] Done in 3.26s (0.05 min).
+[2026-07-06 14:47:43]   [Features] Computing PageRank and Edge Betweenness Centrality...
+[2026-07-06 14:48:05]   [GNN] seed=0 ...
+[2026-07-06 14:48:06]   [GNN] seed=0 | time=0.1626s | sparsification=0.79% | max_stretch=1.446 | SCC=1
+[2026-07-06 14:48:06]   [GNN] seed=1 ...
+[2026-07-06 14:48:07]   [GNN] seed=1 | time=0.1638s | sparsification=0.82% | max_stretch=1.499 | SCC=1
+[2026-07-06 14:48:07]   [GNN] seed=2 ...
+[2026-07-06 14:48:08]   [GNN] seed=2 | time=0.1573s | sparsification=0.79% | max_stretch=1.497 | SCC=1
+[2026-07-06 14:48:08]   [GNN] seed=3 ...
+[2026-07-06 14:48:09]   [GNN] seed=3 | time=0.3201s | sparsification=0.80% | max_stretch=1.429 | SCC=1
+[2026-07-06 14:48:09]   [GNN] seed=4 ...
+[2026-07-06 14:48:09]   [GNN] seed=4 | time=0.1605s | sparsification=0.81% | max_stretch=1.489 | SCC=1
+[2026-07-06 14:48:10] [Paris] ✅ Saved to full_benchmark_20260706_144626.csv
+[2026-07-06 14:48:10] [Paris] SUMMARY: Greedy=3.26s | GNN=0.1929s±0.0637 | Speedup=16.89x
+[2026-07-06 14:48:10] 
+======================================================================
+CITY: Rome
+======================================================================
+[2026-07-06 14:48:10] [Rome] Downloading graph from OSMnx...
+[2026-07-06 14:48:44] [Rome] SCC extraction: 43124 -> 42788 nodes, 88618 edges.
+[2026-07-06 14:48:45]   [Greedy] Starting classic greedy construction on 88618 edges...
+[2026-07-06 14:48:45]   [Greedy] Progress: 4430/88618 edges (5.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 8860/88618 edges (10.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 13290/88618 edges (15.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 17720/88618 edges (20.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 22150/88618 edges (25.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 26580/88618 edges (30.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 31010/88618 edges (35.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 35440/88618 edges (40.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 39870/88618 edges (45.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 44300/88618 edges (50.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 48730/88618 edges (55.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:45]   [Greedy] Progress: 53160/88618 edges (60.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:46]   [Greedy] Progress: 57590/88618 edges (65.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:46]   [Greedy] Progress: 62020/88618 edges (70.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:46]   [Greedy] Progress: 66450/88618 edges (75.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:46]   [Greedy] Progress: 70880/88618 edges (80.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:47]   [Greedy] Progress: 75310/88618 edges (85.0%) | elapsed: 0.0 min
+[2026-07-06 14:48:51]   [Greedy] Progress: 79740/88618 edges (90.0%) | elapsed: 0.1 min
+[2026-07-06 14:49:00]   [Greedy] Progress: 84170/88618 edges (95.0%) | elapsed: 0.3 min
+[2026-07-06 14:49:31]   [Greedy] Progress: 88600/88618 edges (100.0%) | elapsed: 0.8 min
+[2026-07-06 14:49:31]   [Greedy] Done in 46.63s (0.78 min).
+[2026-07-06 14:49:35]   [Features] Computing PageRank and Edge Betweenness Centrality...
+[2026-07-06 14:52:02]   [GNN] seed=0 ...
+[2026-07-06 14:52:07]   [GNN] seed=0 | time=1.1713s | sparsification=1.92% | max_stretch=1.494 | SCC=1
+[2026-07-06 14:52:07]   [GNN] seed=1 ...
+[2026-07-06 14:52:12]   [GNN] seed=1 | time=0.9246s | sparsification=1.93% | max_stretch=1.484 | SCC=1
+[2026-07-06 14:52:12]   [GNN] seed=2 ...
+[2026-07-06 14:52:16]   [GNN] seed=2 | time=0.8986s | sparsification=1.92% | max_stretch=1.465 | SCC=1
+[2026-07-06 14:52:16]   [GNN] seed=3 ...
+[2026-07-06 14:52:20]   [GNN] seed=3 | time=1.2403s | sparsification=1.92% | max_stretch=1.449 | SCC=1
+[2026-07-06 14:52:20]   [GNN] seed=4 ...
+[2026-07-06 14:52:25]   [GNN] seed=4 | time=1.2489s | sparsification=1.91% | max_stretch=1.389 | SCC=1
+[2026-07-06 14:52:25] [Rome] ✅ Saved to full_benchmark_20260706_144626.csv
+[2026-07-06 14:52:25] [Rome] SUMMARY: Greedy=46.63s | GNN=1.0967s±0.1538 | Speedup=42.51x
+[2026-07-06 14:52:25] 
+✅ ALL DONE. Final results:
+[2026-07-06 14:52:25] 
+     city  num_nodes  num_edges  t_limit  greedy_time_sec  greedy_sparsification_pct  greedy_max_stretch  greedy_scc_components  gnn_n_seeds  gnn_time_mean_sec  gnn_time_std_sec  gnn_sparsification_mean_pct  gnn_sparsification_std_pct  gnn_max_stretch_mean  gnn_max_stretch_worst  gnn_repairs_mean  gnn_scc_all_connected  speedup_mean  uses_edge_centrality                  timestamp
+Eindhoven       7881      19051      1.5         1.947757                   7.469424            1.478302                      1            5           0.206033          0.054097                     4.182458                    0.029207              1.491732               1.496966            1371.4                   True      9.453597                  True 2026-07-06T14:47:16.595666
+Manhattan       4540       9766      1.5         0.741637                   1.771452            1.452073                      1            5           0.109978          0.043970                     0.501741                    0.000000              1.416645               1.497090            1493.6                   True      6.743509                  True 2026-07-06T14:47:33.240461
+    Paris       9236      17891      1.5         3.256411                   2.258119            1.499474                      1            5           0.192857          0.063667                     0.802638                    0.010367              1.472048               1.498927            3014.6                   True     16.885136                  True 2026-07-06T14:48:10.008634
+     Rome      42788      88618      1.5        46.625532                   4.054481            1.480996                      1            5           1.096750          0.153761                     1.921054                    0.005369              1.456208               1.494139           10773.2                   True     42.512471                  True 2026-07-06T14:52:25.852862
+[2026-07-06 14:52:25] 
+نتایج نهایی در: /home/soheil79/Portfolio/Research_Geometric_ML_Optimization/results/raw_runs/full_benchmark_20260706_144626.csv

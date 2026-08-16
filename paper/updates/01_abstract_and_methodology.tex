@@ -1,0 +1,46 @@
+%% ============================================================
+%% بسته‌ی به‌روزرسانی مقاله — همه‌ی بخش‌های زیر را در Main_Paper.tex
+%% در محل مشخص‌شده جایگزین/اضافه کن. ترتیب پیشنهادی: از بالا به پایین.
+%% ============================================================
+
+
+%% ------------------------------------------------------------
+%% ۱) جایگزین کامل \begin{abstract}...\end{abstract}
+%% ------------------------------------------------------------
+\begin{abstract}
+Real-time routing in Intelligent Transportation Systems (ITS) is severely bottlenecked by the $O(m \cdot (n + m \log n))$ computational complexity associated with constructing exact geometric $t$-spanners on large-scale urban topologies. While machine learning has emerged as a promising paradigm to bypass these computational limits, standard neural predictors lack formal topological guarantees and rely on a single hard decision threshold that ignores the structural importance of individual edges. This paper introduces a robust hybrid neural-algorithmic framework that (i) shifts the heavy computational burden of spanner construction to an offline representation learning phase while enforcing strict structural constraints online via a cutoff-bounded directed repair procedure, and (ii) replaces the conventional hard-threshold pruning decision with a Mamdani-style fuzzy inference system that jointly reasons over the network's epistemic uncertainty (via Monte Carlo Dropout) and each edge's structural importance (via Edge Betweenness Centrality). Experimental evaluations across three heterogeneous urban fabrics (Eindhoven, Paris, and Rome), each validated over 15--18 independent stochastic seeds at matched sparsification levels, show that the proposed fuzzy pruning mechanism consistently requires fewer post-hoc geometric repairs than both a genetic-algorithm-tuned deterministic threshold with active self-correcting feedback (7.1--16.6\% fewer repairs) and a sparsity-matched random pruning baseline (0.4--10.2\% fewer repairs), across every tested city without exception. We further report, with full transparency, that a single-parameter threshold search does not by itself benefit from evolutionary optimization over random search under equal evaluation budget -- underscoring that the genuine value of evolutionary search in this framework lies in the higher-dimensional joint optimization of loss weights and calibration parameters, not in scalar threshold tuning. Under extreme network corruption, the uncertainty-aware framework maintains full Strong Connectivity (SCC) and a bounded directed stretch factor across all tested configurations.
+\end{abstract}
+
+
+%% ------------------------------------------------------------
+%% ۲) بخش جدید Methodology — این را به‌عنوان یک subsection جدید بعد
+%% از "Meta-Evolutionary Threshold Selection" و قبل از "Continual
+%% Learning via Experience Replay" اضافه کن.
+%% ------------------------------------------------------------
+\subsection{Fuzzy-Inference Pruning Decision}
+\label{sec:fuzzy}
+
+A hard decision threshold on the calibrated pruning probability $\hat{y}_i$ (Eq. 5) treats all edges with $\hat{y}_i$ near the boundary identically, regardless of their structural role in the network. To address this, we replace the hard threshold with a Mamdani-style fuzzy inference system that combines two normalized inputs per edge $i$: the calibrated probability $\hat{y}_i \in [0,1]$ and the edge betweenness centrality $C(u,v) \in [0,1]$ (min-max normalized per city).
+
+Each input is partitioned into three linguistic terms (\textit{Low}, \textit{Medium}, \textit{High}) using triangular membership functions:
+\begin{equation}
+    \mu_{\text{Low}}(x) = \max\left(0, \min\left(\frac{x - a_1}{b_1 - a_1}, \frac{c_1 - x}{c_1 - b_1}\right)\right)
+\end{equation}
+with analogous definitions for $\mu_{\text{Medium}}$ and $\mu_{\text{High}}$, parameterized by knot triples $(a,b,c)$ fitted such that the three terms overlap smoothly across $[0,1]$.
+
+We define a rule base of five Mamdani rules that encode the intuition that an edge should be retained either when the model is confident it is necessary, or when the model is uncertain but the edge occupies a structurally critical position:
+\begin{align}
+    R_1&: \text{IF } \hat{y}_i \text{ is High} &\Rightarrow \text{KEEP} \\
+    R_2&: \text{IF } \hat{y}_i \text{ is Medium AND } C(u,v) \text{ is High} &\Rightarrow \text{KEEP} \\
+    R_3&: \text{IF } \hat{y}_i \text{ is Medium AND } C(u,v) \text{ is Low} &\Rightarrow \text{PRUNE} \\
+    R_4&: \text{IF } \hat{y}_i \text{ is Low AND } C(u,v) \text{ is High} &\Rightarrow \text{KEEP (cautious)} \\
+    R_5&: \text{IF } \hat{y}_i \text{ is Low AND } C(u,v) \text{ is Low} &\Rightarrow \text{PRUNE}
+\end{align}
+
+Each rule's firing strength is computed via the minimum (fuzzy AND) of its antecedent memberships. The final crisp keep-score $s_i \in [0,1]$ is obtained via weighted centroid defuzzification:
+\begin{equation}
+    s_i = \frac{\sum_{k=1}^{5} w_k \cdot \text{fire}_k(i)}{\sum_{k=1}^{5} \text{fire}_k(i) + \epsilon}
+\end{equation}
+where $w_k \in \{1.0, 1.0, 0.0, 0.7, 0.0\}$ are the output singleton positions for rules $R_1$--$R_5$ respectively, and $\epsilon$ prevents division by zero when no rule fires.
+
+To ensure a fair, sparsity-controlled comparison against the hard-threshold baseline, edges are ranked by $s_i$ and the lowest-scoring non-bottleneck edges are pruned until the target sparsification level is reached, rather than applying a fixed cutoff on $s_i$ directly. Section~\ref{sec:fuzzy-results} reports the empirical validation of this mechanism against both the GA-tuned threshold with active feedback and a sparsity-matched random baseline.

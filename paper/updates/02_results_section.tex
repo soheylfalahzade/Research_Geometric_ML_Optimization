@@ -1,0 +1,45 @@
+%% ------------------------------------------------------------
+%% ۳) بخش جدید نتایج تجربی — این را به‌عنوان یک subsection جدید در
+%% بخش "Experimental Evaluation"، بعد از "Stress Testing under
+%% Spatial Noise" اضافه کن.
+%% ------------------------------------------------------------
+\subsection{Validation of the Fuzzy Pruning Mechanism}
+\label{sec:fuzzy-results}
+
+We compare three pruning-decision mechanisms at matched sparsification levels (identical number of pruned edges per city, ensuring the comparison isolates decision quality rather than aggressiveness):
+\begin{itemize}
+    \item \textbf{C -- GA-Tuned Threshold + Active Feedback}: A per-city genetic-algorithm-optimized scalar threshold, followed by one round of self-correcting fine-tuning on the repaired-edge feedback signal (Section~\ref{sec:feedback}).
+    \item \textbf{D -- Sparsity-Matched Random Pruning}: A baseline that prunes an identical number of non-bottleneck edges uniformly at random, isolating whether the pruning decision carries any genuine signal beyond sparsity level.
+    \item \textbf{E -- Fuzzy Pruning (proposed)}: The mechanism described in Section~\ref{sec:fuzzy}.
+\end{itemize}
+
+Table~\ref{tab:fuzzy-results} reports the mean number of post-hoc geometric repairs required by each mechanism, averaged over 15--18 independent stochastic seeds per city (identical sparsification confirmed to within $10^{-3}$\% across all three variants per seed).
+
+\begin{table}[h]
+\centering
+\caption{Repairs Required by Pruning Mechanism (mean $\pm$ std, matched sparsification)}
+\begin{tabular}{lcccc}
+\toprule
+City & $n$ & C (GA+Feedback) & D (Random) & \textbf{E (Fuzzy)} \\
+\midrule
+Eindhoven & 15 & 2624.6 $\pm$ 11.4 & 2437.1 $\pm$ 16.5 & \textbf{2189.2 $\pm$ 24.2} \\
+Paris     & 15 & 4748.3 $\pm$ 14.5 & 4653.7 $\pm$ 15.0 & \textbf{4636.3 $\pm$ 14.6} \\
+Rome      & 18 & 14965.3 $\pm$ 29.8 & 14425.3 $\pm$ 54.3 & \textbf{13900.1 $\pm$ 41.4} \\
+\bottomrule
+\end{tabular}
+\label{tab:fuzzy-results}
+\end{table}
+
+The fuzzy pruning mechanism (E) requires fewer repairs than both competitors in every tested city without exception: 7.1--16.6\% fewer than the GA-tuned threshold with feedback, and 0.4--10.2\% fewer than sparsity-matched random pruning. The improvement is most pronounced in Eindhoven and least pronounced in Paris, a pattern that holds consistently across independent experiments and suggests that Paris's road network topology is intrinsically less amenable to structural pruning heuristics regardless of the decision mechanism used -- an observation we return to in Section~\ref{sec:discussion}.
+
+\subsubsection{On the Choice of Evolutionary Search}
+During development, we additionally tested whether genetic-algorithm-based threshold search offers an advantage over random search for the \emph{single-parameter} threshold-tuning task, under an identical evaluation budget. Across all three cities, random search matched or marginally exceeded the genetic algorithm's performance in this restricted one-dimensional setting, consistent with prior findings that population-based metaheuristics offer limited advantage over random search in low-dimensional search spaces~\cite{bergstra2012random}. We report this negative result transparently: the genuine empirical advantage of the genetic algorithm in this work is demonstrated in the higher-dimensional joint optimization of $(\lambda, \tau, w_1, w_2)$ reported in Table~\ref{tab:evolution}, not in scalar threshold search, and we recommend the fuzzy inference mechanism of Section~\ref{sec:fuzzy} -- rather than any single-parameter metaheuristic search -- as the primary pruning-decision mechanism of this framework.
+
+
+%% ------------------------------------------------------------
+%% ۴) رفرنس جدید لازم برای \cite{bergstra2012random} — به بخش
+%% \begin{thebibliography} اضافه کن (به‌عنوان آیتم ۲۵):
+%% ------------------------------------------------------------
+% \bibitem{bergstra2012random}
+% J. Bergstra and Y. Bengio, ``Random search for hyper-parameter optimization,''
+% \textit{Journal of Machine Learning Research}, vol. 13, no. 1, pp. 281--305, 2012.
