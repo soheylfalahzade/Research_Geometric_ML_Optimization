@@ -1,6 +1,6 @@
 """
 ================================================================================
-Q1 SCIENTIFIC BENCHMARKER — THE REDEMPTION SUITE (FINAL SOTA COMPARISON)
+Q1 SCIENTIFIC BENCHMARKER — SOTA Comparison Suite
 ================================================================================
 Addressing Reviewer Critical Gaps:
 1. Isolated Inference Time: Comparing Online GNN vs. Iterative Greedy.
