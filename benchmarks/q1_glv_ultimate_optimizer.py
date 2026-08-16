@@ -1,9 +1,9 @@
 """
 ================================================================================
-Q1 GEOSPATIAL GRAPH OPTIMIZER — THE ULTIMATE SCIENTIFIC MONOLITH (FINAL VERSION)
+Q1 GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
 ================================================================================
 Target Journal: Q1 (IEEE Transactions on Intelligent Transportation Systems)
-Status: Anti-Fragile / Production-Ready
+Status: Under active development; not yet submitted
 Author: Soheyl Falahzade
 
 نسخه‌ی به‌روزشده: Edge Betweenness Centrality اکنون به‌عنوان یک ویژگی
@@ -529,7 +529,7 @@ def main():
     plt.xlabel(r"Mean Route Difference |d(u,v) - d(v,u)| (meters)"); plt.ylabel("Frequency"); plt.legend(); plt.grid(alpha=0.3)
     plt.savefig('q1_directed_asymmetry_proof.png', dpi=300)
 
-    print("\n✓ Project Fully Validated. 3 Plots saved. Status: Ready for Submission.")
+    print("\n✓ Pipeline run complete. 3 plots saved to disk.")
 
 if __name__ == "__main__":
     main()
