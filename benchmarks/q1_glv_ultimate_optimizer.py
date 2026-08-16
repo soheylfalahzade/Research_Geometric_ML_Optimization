@@ -34,11 +34,20 @@ import os
 import random
 import multiprocessing as mp
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 from sklearn.preprocessing import StandardScaler
 import scipy.sparse as sp
 from scipy.sparse.csgraph import dijkstra, connected_components
 import matplotlib.pyplot as plt
+
+# مسیرها را نسبت به محل خود فایل حساب می‌کنیم، نه نسبت به پوشه‌ای که
+# اسکریپت از آنجا اجرا می‌شود — قبلاً اگر کسی از پوشه‌ای غیر از ریشهٔ
+# ریپو اجرا می‌کرد، فایل CSV پیدا نمی‌شد و مدل بی‌صدا با وزن‌های خام
+# (تصادفی) جایگزین می‌شد (نقض قانون ۷: قابل بازتولید بودن).
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DATA_CSV = REPO_ROOT / "results" / "data" / "spanner_dataset_pro.csv"
+DEFAULT_MODEL_PT = REPO_ROOT / "results" / "models" / "best_base_model.pt"
 
 # ──────────────────────────────────────────────
 # ۰. تنظیمات استراتژیک و هایپرپارامترها
@@ -139,12 +148,16 @@ def q1_balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5)
 # ──────────────────────────────────────────────
 # ۲. پروتکل آموزش پایه (Full Base Training Loop)
 # ──────────────────────────────────────────────
-def train_base_model(csv_path="spanner_dataset_pro.csv", weights_path="best_base_model.pt"):
+def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
     print("\n[Base Training] Loading spatial dataset and engineering features...")
 
     if not os.path.exists(csv_path):
-        print(f"⚠️ Warning: {csv_path} not found. Using zero-initialized model.")
-        return GeometricEdgeSAGE()
+        raise FileNotFoundError(
+            f"دیتاست ضروری پیدا نشد: {csv_path}\n"
+            f"این خطا عمداً fatal است (نه فقط هشدار) چون ادامهٔ کار بدون این "
+            f"داده یعنی مدل با وزن‌های تصادفی/خام کار می‌کند و نتایج بی‌معنی "
+            f"تولید می‌شود — طبق قانون ۷ (قابلیت بازتولید)."
+        )
 
     df = pd.read_csv(csv_path)
     # مهندسی ویژگی برای گراف جهت‌دار
@@ -471,7 +484,7 @@ def compute_final_metrics_directed(model, res):
 def main():
     mp.set_start_method("spawn", force=True)
 
-    WEIGHTS = "best_base_model.pt"
+    WEIGHTS = DEFAULT_MODEL_PT
     model = train_base_model(weights_path=WEIGHTS)
 
     print("\n" + "=" * 65)
