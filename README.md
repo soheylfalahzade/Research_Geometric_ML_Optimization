@@ -1,84 +1,104 @@
-# Geospatial Graph Optimizer: A Neural-Algorithmic Framework for Directed $t$-Spanner Construction in Large-Scale Urban Networks
+# Geo-SmartSpanner: Robust Neural-Algorithmic Framework for Directed *t*-Spanner Construction in Metropolitan Road Networks
 
-[![Research Status: Q1 Candidate](https://img.shields.io/badge/Research-Q1--Target-gold.svg)](#)
-[![Algorithm: Evolutionary GNN](https://img.shields.io/badge/Optimization-Evolutionary--GNN-orange.svg)](#)
-[![Field: Intelligent Transportation Systems](https://img.shields.io/badge/Field-ITS--ML-blue.svg)](#)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)
+![PyTorch Geometric](https://img.shields.io/badge/PyTorch%20Geometric-2.5-orange.svg)
+![Reproducibility](https://img.shields.io/badge/Seeds-15--18%20per%20city-success.svg)
 
-## 📖 Executive Summary
-Real-time navigation and routing in metropolitan networks are computationally bounded by graph density. This repository introduces a **Hybrid Neural-Algorithmic Framework** that constructs mathematically guaranteed $t$-spanners on directed urban topologies. By integrating **Graph Neural Networks (GNN)**, **Genetic Meta-Optimization**, and **Active Geometric Feedback Loops**, we achieve significant sparsification while strictly preserving the $t$-stretch factor and Strong Connectivity (SCC).
+**Author:** Soheyl Falahzade — M.Sc. Student, Algorithms & Computational Geometry, Yazd University
 
----
+> این README دقیقاً منطبق با محتوای فعلی `paper/Main_Paper.tex` است. هر عددی که اینجا می‌بینید، از یک فایل CSV واقعی در `results/raw_runs/` می‌آید — نه تخمین یا گرد کردن.
 
-## 📐 Mathematical Foundation
+## خلاصه
 
-### I. The $t$-Spanner Property
-Given a directed road network $G=(V, E)$, our goal is to find a subgraph $H=(V, E')$ where $E' \subset E$ such that for every pair of nodes $(u, v)$, the shortest path distance in $H$ satisfies:
-$$d_{H}(u, v) \le t \cdot d_{G}(u, v), \quad \forall u, v \in V$$
-where $t = 1.5$ is the theoretical stretch upper bound.
+روتینگ لحظه‌ای در سیستم‌های حمل‌ونقل هوشمند (ITS) به‌شدت توسط پیچیدگی $O(m \cdot (n + m \log n))$ ساخت *t*-spanner هندسی دقیق محدود می‌شود. این فریمورک با ترکیب:
 
-### II. Trustworthy AI: Uncertainty-Aware Pruning
-To prevent overconfident pruning of critical urban arteries, we employ **Monte Carlo (MC) Dropout**. The pruning decision is governed by the expected probability $\mathbb{E}$ and the epistemic uncertainty (variance) $\sigma$:
-$$\hat{y}_i = \sigma(f_\theta(x_i)) + \lambda \cdot \text{Var}[f_\theta(x_i)]$$
-If $\hat{y}_i > \tau$, the edge is preserved. This ensures that the model "knows when it doesn't know," triggering the repair module for high-uncertainty regions.
+1. یک **GNN با عدم‌قطعیت معرفت‌شناختی** (Monte Carlo Dropout) برای پیش‌بینی احتمال بقای هر یال،
+2. یک **ماژول ترمیم توپولوژیک جهت‌دار** (Directed GLV-Repair) مبتنی بر Dijkstra با cutoff، که تضمین می‌کند $d_H(u,v) \le t \cdot d_G(u,v)$ برای همهٔ یال‌ها،
+3. یک **مکانیزم استنتاج فازی (Mamdani)** که تصمیم هرس را به‌جای یک آستانهٔ سخت، از ترکیب عدم‌قطعیت مدل و مرکزیت ساختاری یال می‌گیرد،
+4. یک لایهٔ **بهینه‌سازی تکاملی (GA)** برای تنظیم مشترک وزن‌های loss و پارامترهای کالیبراسیون،
 
-### III. Evolutionary Multi-Objective Optimization
-We utilized a **Genetic Algorithm (GA)** to find the global Pareto-optimal threshold $\theta$ and weighting factors $\alpha, \beta$ for the fitness function:
-$$\text{Maximize } \mathcal{F} = w_1 \cdot \text{Sparsification} - w_2 \cdot \max\left( \text{Stretch Violation} \right)$$
-The GA prevents the optimization from trapping in local minima inherent in non-convex urban morphologies.
+سرعت اجرا را نسبت به الگوریتم کلاسیک Greedy Spanner به‌طور معنادار بالا می‌برد و در همان حال ۱۰۰٪ همبندی قوی (SCC) و کران بالای stretch جهت‌دار را حتی زیر نویز مکانی شدید حفظ می‌کند.
+
+**یافتهٔ صادقانه‌ای که مقاله هم گزارش می‌دهد:** جستجوی تکاملی (GA) برای تنظیم *یک* پارامتر آستانه، مزیتی نسبت به جستجوی تصادفی ندارد — ارزش واقعی GA در تنظیم *مشترک* چند پارامتر همزمان است، نه در جستجوی اسکالر.
 
 ---
 
-## 📊 Scientific Visual Benchmarks
+## نتایج تجربی (از `results/raw_runs/`)
 
-### 1. Evolutionary Convergence
-The Genetic Algorithm effectively navigated the parameter space, stabilizing the trade-off between network density and geometric integrity.
-![Evolutionary Convergence](benchmark_convergence.png)
-*Figure 1: Meta-optimization convergence of the Genetic Algorithm vs. Baseline Search.*
+### ۱. سرعت ساخت نسبت به Greedy کلاسیک (میانگین روی ۵ seed، با ترمیم cutoff-bounded)
 
-### 2. Global Stretch Guarantee (Monte Carlo Proof)
-We validated the spanner property using $10^5$ random route pairs per city. The CDF plots confirm that 100% of paths remain under the $t=1.5$ limit.
-![Global Stretch CDF](q1_global_stretch_cdf.png)
-*Figure 2: Empirical Cumulative Distribution Function of Directed Global Stretch.*
+| شهر | گره‌ها | یال‌ها | سرعت |
+|---|---:|---:|---:|
+| Manhattan | 4,540 | 9,766 | 6.74× |
+| Eindhoven | 7,881 | 19,051 | 9.45× |
+| Paris | 9,236 | 17,891 | 16.89× |
+| Rome | 42,788 | 88,618 | **42.51×** |
 
-### 3. Computational Acceleration (The $279\times$ Speedup)
-Our framework shifts the $O(M(N+M \log N))$ complexity of classic greedy algorithms to an $O(M)$ online inference phase.
-![Speedup Benchmark](scientific_speedup_fixed.png)
-*Figure 3: Computational Speedup Factor: GNN Inference vs. Classic Greedy Spanner (Log Scale).*
+> نکتهٔ صادقانهٔ مهم که در مقاله هم هست: یک پیاده‌سازی اولیهٔ ساده‌لوحانه (بدون cutoff در جستجوی ترمیم) این سرعت را تا ۰.۸۶–۱.۲۱× پایین می‌آورد، چون تا ۹۷.۷٪ زمان اجرا صرف تأیید ترمیم می‌شد. یعنی مزیت سرعت فقط وقتی واقعی است که *همهٔ* مراحل pipeline، نه فقط بخش یادگیری‌محور، پیچیدگی مناسب داشته باشند.
 
-### 4. Robustness under Map Corruption
-The integration of MC-Dropout ensures the network remains functional even when input spatial features are noisy or corrupted.
-![Robustness Test](scientific_robustness_stress_test.png)
-*Figure 4: Resilience of the proposed MC-Dropout model vs. Deterministic baselines.*
+### ۲. مقایسهٔ سه مکانیزم تصمیم هرس (میانگین ± انحراف معیار، روی ۱۵–۱۸ seed مستقل، sparsification یکسان)
 
-### 5. Continual Learning & Stability
-Using an **Experience Replay Buffer**, the model retains topological knowledge across diverse urban fabrics (Grid, Radial, Organic), preventing catastrophic forgetting.
-![Continual Learning](q1_continual_learning_loss.png)
-*Figure 5: Training stability and loss convergence across sequential city optimizations.*
+| شهر | n | C: آستانهٔ GA+Feedback | D: هرس تصادفی | **E: هرس فازی (پیشنهادی)** |
+|---|---:|---:|---:|---:|
+| Eindhoven | 15 | 2624.6 ± 11.4 | 2437.1 ± 16.5 | **2189.2 ± 24.2** |
+| Paris | 15 | 4748.3 ± 14.5 | 4653.7 ± 15.0 | **4636.3 ± 14.6** |
+| Rome | 18 | 14965.3 ± 29.8 | 14425.3 ± 54.3 | **13900.1 ± 41.4** |
 
-### 6. Directed Traffic Asymmetry (Gap 7 Proof)
-Unlike undirected models, our framework respects one-way constraints, validated by the distribution of path asymmetry.
-![Directed Asymmetry](q1_directed_asymmetry_proof.png)
-*Figure 6: Proof of Directed Logic: Distribution of $|d(u,v) - d(v,u)|$.*
+عدد جدول = تعداد ترمیم‌های لازم بعد از هرس (کمتر = بهتر). مکانیزم فازی در **هر سه شهر بدون استثنا** کمترین ترمیم را لازم دارد.
 
 ---
 
-## 🚀 Key Performance Indicators (Final Verdict)
+## ساختار پروژه (فعلی، پاک‌سازی‌شده)
 
-| Metropolis | Sparsification | SCC (Connectivity) | Max Stretch | Speedup vs SOTA |
-| :--- | :--- | :--- | :--- | :--- |
-| **Rome** | 1.35% | **100.0%** | **1.131** | **279.2x** |
-| **Paris** | 1.11% | **100.0%** | **1.157** | **17.6x** |
-| **Manhattan** | 0.48% | **100.0%** | **1.220** | **18.5x** |
-| **Eindhoven** | 3.30% | **100.0%** | **1.313** | **19.8x** |
+```
+Research_Geometric_ML_Optimization/
+├── benchmarks/          # اسکریپت‌های آزمایش و اعتبارسنجی (q1_*, test_*, ablation_*)
+├── src/                 # کد اصلی pipeline (research_ml.py, visualize_*.py)
+├── results/
+│   ├── data/             # دیتاست‌های ساخته‌شده از OSM
+│   ├── figures/          # نمودارهای نهایی مقاله
+│   ├── raw_runs/         # لاگ خام هر اجرا با seed و timestamp — منبع همهٔ اعداد بالا
+│   ├── logs/
+│   └── models/
+├── docs/                 # نقشه‌های تعاملی HTML (از شمارش زبان گیت‌هاب مستثنا)
+├── paper/
+│   ├── Main_Paper.tex    # مقالهٔ فعلی (فرمت IEEE)
+│   ├── Main_Paper.pdf
+│   └── updates/          # نسخه‌های میانی بخش‌های مقاله
+├── data_generator.py     # ساخت دیتاست از OSMnx + محاسبهٔ Greedy Spanner دقیق به‌عنوان ground truth
+├── genetic_optimizer.py  # تنظیم هایپرپارامتر با GA
+├── cross_city_validator.py
+├── final_validator.py
+├── hybrid_optimizer.py
+├── hyperparameter_benchmark.py
+├── global_generalization_benchmark.py
+├── requirements.txt
+├── requirements_full_env_backup.txt   # (فقط مرجع؛ خروجی کامل pip freeze محیط conda قبلی)
+└── .gitignore / .gitattributes
+```
 
 ---
 
-## 🛠 Project Components
-*   `q1_glv_ultimate_optimizer.py`: Master production engine (Active Feedback + Directed SCC).
-*   `q1_master_benchmarker.py`: Scientific validation suite (Speedup & Stress Tests).
-*   `genetic_optimizer.py`: Evolutionary parameter tuner.
+## نکتهٔ باز (از مقاله نقل‌قول شده)
+
+> «سه شکل در Fig. 4 قبل از افزودن ویژگی مرکزیت یال و مکانیزم هرس فازی تولید شده‌اند و پیش از ارسال نهایی به مجله باید با مدل فعلی بازتولید شوند.»
+
+یعنی سه نمودار (`q1_global_stretch_cdf.png`, `q1_continual_learning_loss.png`, `q1_directed_asymmetry_proof.png`) باید با pipeline فعلی دوباره تولید شوند — این هنوز انجام نشده.
 
 ---
-**Author:** Soheyl Falahzade  
-**Affiliation:** Research Scholar in Geometric ML & ITS  
-**Contact:** [GitHub Profile](https://github.com/soheylfalahzade)
+
+## Quickstart
+
+```bash
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+
+python data_generator.py                    # ساخت دیتاست از OSM برای یک شهر
+python genetic_optimizer.py                  # تنظیم هایپرپارامتر
+python benchmarks/q1_master_benchmarker.py   # اجرای مجموعهٔ کامل اعتبارسنجی
+```
+
+## License
+
+MIT
