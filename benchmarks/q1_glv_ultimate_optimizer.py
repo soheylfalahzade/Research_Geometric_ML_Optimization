@@ -295,6 +295,15 @@ def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
     dist_orig = dijkstra(matrix_orig, directed=True, indices=sources)
     dist_span = dijkstra(matrix_final, directed=True, indices=sources)
 
+    # برای محاسبهٔ عدم‌تقارن جهت‌دار واقعی d(u,v) در مقابل d(v,u)، باید
+    # فاصله‌ها را روی ترانهادهٔ (transpose) گراف حساب کنیم -- قبلاً این خط
+    # دوباره روی همان گراف جهت‌دار از همان مبدأ اجرا می‌شد که دقیقاً همان
+    # فاصلهٔ رفت را برمی‌گرداند (تفاوت تقریباً صفر، همیشه)، نه فاصلهٔ برگشت
+    # واقعی. این باعث می‌شد نمودار "اثبات عدم‌تقارن" همیشه نزدیک صفر بیفتد
+    # صرف‌نظر از این‌که گراف واقعاً چقدر نامتقارن است.
+    matrix_final_T = matrix_final.transpose().tocsr()
+    dist_span_reverse = dijkstra(matrix_final_T, directed=True, indices=sources)
+
     stretches = []
     asymmetry_data = []
 
@@ -305,8 +314,10 @@ def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
         if not np.any(valid_mask): continue
 
         stretches.extend((d_s[valid_mask] / d_o[valid_mask]).tolist())
-        rev_dist = dijkstra(matrix_final, directed=True, indices=[sources[i]])
-        asymmetry_data.append(np.abs(d_s[valid_mask] - rev_dist[0][valid_mask]).mean())
+        rev_dist = dist_span_reverse[i]
+        both_valid = valid_mask & (rev_dist < np.inf)
+        if np.any(both_valid):
+            asymmetry_data.append(np.abs(d_s[both_valid] - rev_dist[both_valid]).mean())
 
     if len(stretches) > num_samples:
         stretches = rng.choice(stretches, size=num_samples, replace=False)
@@ -537,12 +548,18 @@ def main():
     plt.xlabel("Fine-tuning Epochs"); plt.ylabel("Total Combined Loss"); plt.legend(); plt.grid(alpha=0.3)
     plt.savefig(DEFAULT_FIGURES_DIR / 'q1_continual_learning_loss.png', dpi=300)
 
-    plt.figure(figsize=(10, 6))
-    for res in final_results:
-        plt.hist(res['_asymmetry'], bins=30, alpha=0.5, label=f"{res['City']} Asymmetry")
-    plt.title("Visual Proof of Directed Traffic Asymmetry (Gap 7)", fontsize=14, fontweight='bold')
-    plt.xlabel(r"Mean Route Difference |d(u,v) - d(v,u)| (meters)"); plt.ylabel("Frequency"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_directed_asymmetry_proof.png', dpi=300)
+    fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=False, sharey=False)
+    colors = {'Manhattan': 'tab:blue', 'Eindhoven': 'tab:orange', 'Paris': 'tab:green', 'Rome': 'tab:red'}
+    for ax, res in zip(axes.flat, final_results):
+        city = res['City']
+        ax.hist(res['_asymmetry'], bins=30, color=colors.get(city, 'gray'), alpha=0.85)
+        ax.set_title(city, fontsize=12, fontweight='bold')
+        ax.set_xlabel(r"|d(u,v) - d(v,u)| (m)")
+        ax.set_ylabel("Frequency")
+        ax.grid(alpha=0.3)
+    fig.suptitle("Visual Proof of Directed Traffic Asymmetry (Gap 7)", fontsize=15, fontweight='bold')
+    fig.tight_layout(rect=[0, 0, 1, 0.96])
+    fig.savefig(DEFAULT_FIGURES_DIR / 'q1_directed_asymmetry_proof.png', dpi=300)
 
     print("\n✓ Pipeline run complete. 3 plots saved to disk.")
 
