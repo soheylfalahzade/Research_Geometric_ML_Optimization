@@ -48,6 +48,8 @@ import matplotlib.pyplot as plt
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_CSV = REPO_ROOT / "results" / "data" / "spanner_dataset_pro.csv"
 DEFAULT_MODEL_PT = REPO_ROOT / "results" / "models" / "best_base_model.pt"
+DEFAULT_FIGURES_DIR = REPO_ROOT / "results" / "figures"
+DEFAULT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 # ──────────────────────────────────────────────
 # ۰. تنظیمات استراتژیک و هایپرپارامترها
@@ -526,21 +528,21 @@ def main():
     plt.axvline(1.5, color='red', linestyle='--', label='Limit (t=1.5)')
     plt.title("Empirical CDF of Directed Global Stretch", fontsize=14, fontweight='bold')
     plt.xlabel(r"Stretch Ratio ($d_{H}/d_{G}$)"); plt.ylabel(r"P(Stretch $\leq$ x)"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig('q1_global_stretch_cdf.png', dpi=300)
+    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_global_stretch_cdf.png', dpi=300)
 
     plt.figure(figsize=(10, 6))
     for city, losses in loss_history.items():
         plt.plot(range(1, len(losses)+1), losses, marker='o', lw=2, label=city)
     plt.title("Continual Learning Stability via Memory Buffer", fontsize=14, fontweight='bold')
     plt.xlabel("Fine-tuning Epochs"); plt.ylabel("Total Combined Loss"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig('q1_continual_learning_loss.png', dpi=300)
+    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_continual_learning_loss.png', dpi=300)
 
     plt.figure(figsize=(10, 6))
     for res in final_results:
         plt.hist(res['_asymmetry'], bins=30, alpha=0.5, label=f"{res['City']} Asymmetry")
     plt.title("Visual Proof of Directed Traffic Asymmetry (Gap 7)", fontsize=14, fontweight='bold')
     plt.xlabel(r"Mean Route Difference |d(u,v) - d(v,u)| (meters)"); plt.ylabel("Frequency"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig('q1_directed_asymmetry_proof.png', dpi=300)
+    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_directed_asymmetry_proof.png', dpi=300)
 
     print("\n✓ Pipeline run complete. 3 plots saved to disk.")
 
