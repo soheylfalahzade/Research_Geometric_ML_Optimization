@@ -12,12 +12,18 @@ import numpy as np
 import pandas as pd
 import time
 import os
+from pathlib import Path
 import matplotlib.pyplot as plt
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_FIGURES_DIR = REPO_ROOT / "results" / "figures"
+DEFAULT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 # وارد کردن تمام اجزای ابر-پروژه شما
 from spanner_pipeline import (
     GeometricEdgeSAGE, city_worker, train_base_model, 
-    finetune_on_repairs_continual, compute_final_metrics_directed, CITIES
+    finetune_on_repairs_continual, compute_final_metrics_directed, CITIES,
+    DEFAULT_MODEL_PT
 )
 
 def run_ablation_experiment():
@@ -25,7 +31,7 @@ def run_ablation_experiment():
     
     city_key = "Eindhoven"
     city_query = CITIES[city_key]
-    weights_path = "best_base_model.pt"
+    weights_path = DEFAULT_MODEL_PT
     
     # آموزش مدل پایه برای شروع
     model_base = train_base_model(weights_path=weights_path)
@@ -65,14 +71,22 @@ def run_ablation_experiment():
     spanner_pipeline.MC_SAMPLES = original_mc # بازگرداندن به حالت قبل
 
     # سناریو ۳: بدون محافظت گره‌ها (No Safeguards)
-    print("\n[Scenario 3] Running without Degree-1 Safeguards...")
-    # شبیه‌سازی حذف شرط is_bottleneck
-    # (در اینجا فقط نتایج عددی را با فرض حذف شرط تحلیل می‌کنیم)
+    # ⚠️ هشدار روش‌شناسی: این سناریو در نسخهٔ قبلی این فایل اصلاً اجرا
+    # نمی‌شد -- به‌جایش سه مقدار دستی و از پیش‌نوشته ("Higher (Risk)",
+    # "> 1.5 (Predicted)", "Failed (Disconnected)") در جدول نتایج به‌جای
+    # اندازه‌گیری واقعی جا زده می‌شد. طبق قانون ۱ و ۳ متدولوژی، این نوع
+    # داده‌ی ساختگی هرگز نباید کنار نتایج واقعی در یک جدول ظاهر شود.
+    # پیاده‌سازی واقعی این سناریو (خاموش‌کردن شرط is_bottleneck در تابع
+    # city_worker) نیاز به تغییر امضای آن تابع دارد که خارج از دامنهٔ این
+    # اصلاح خودکار است. تا وقتی این آزمایش واقعاً اجرا و اندازه‌گیری نشود،
+    # به‌صراحت به‌عنوان «انجام‌نشده» علامت‌گذاری می‌شود -- نه یک نتیجهٔ جعلی.
+    print("\n[Scenario 3] SKIPPED — not yet implemented as a real experiment.")
+    print("             (see comment above; do not fabricate numbers here)")
     ablation_results.append({
-        "Configuration": "w/o Topology Safeguards (Gap 7)",
-        "Sparsification": "Higher (Risk)",
-        "Max Stretch": "> 1.5 (Predicted)",
-        "SCC": "Failed (Disconnected)"
+        "Configuration": "w/o Topology Safeguards",
+        "Sparsification": "NOT MEASURED",
+        "Max Stretch": "NOT MEASURED",
+        "SCC": "NOT MEASURED"
     })
 
     # نمایش جدول نهایی ابطالی
@@ -93,8 +107,8 @@ def run_ablation_experiment():
     plt.title("Ablation Analysis: Impact of MC-Dropout on Max Stretch", fontweight='bold')
     plt.ylabel("Maximum Stretch Factor")
     plt.legend()
-    plt.savefig("q1_ablation_analysis.png", dpi=300)
-    print("\n✓ Ablation Plot saved as 'q1_ablation_analysis.png'")
+    plt.savefig(DEFAULT_FIGURES_DIR / "ablation_analysis.png", dpi=300)
+    print(f"\n✓ Ablation Plot saved to '{DEFAULT_FIGURES_DIR / 'ablation_analysis.png'}'")
 
 if __name__ == "__main__":
     run_ablation_experiment()
