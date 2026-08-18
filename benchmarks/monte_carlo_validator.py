@@ -13,7 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 # وارد کردن توابع مورد نیاز از فایل اصلی پروژه
 from spanner_pipeline import (
     GeometricEdgeSAGE, train_base_model, city_worker,
-    finetune_on_repairs, glv_repair, CITIES
+    finetune_on_repairs_continual, glv_repair_directed, CITIES
 )
 
 def run_monte_carlo_scipy(city_label, G_orig, G_final, num_samples=100000):
@@ -85,7 +85,7 @@ def main():
 
     # ۲. اعمال بهینه‌سازی و فاین‌تیون نهایی مدل بر روی لبه‌های ترمیم شده
     print("\nStep 3: Fine-tuning GNN on repaired edges (Phase 2)...")
-    model = finetune_on_repairs(model, city_results)
+    model = finetune_on_repairs_continual(model, city_results)
 
     # ۳. شروع آزمون علمی مونت‌کارلو برای شهرهای پاریس و رم
     print("\nStep 4: Running Monte Carlo Verification...")
@@ -117,7 +117,7 @@ def main():
             else:
                 removed.append({'u': u, 'v': v, 'length': d['length'], 'prob': final_probs[i], 'idx': i})
                 
-        G_final, _ = glv_repair(G_opt, removed)
+        G_final, _ = glv_repair_directed(G_opt, removed)
         
         # اجرای شبیه‌سازی سریع مونت‌کارلو
         stretches = run_monte_carlo_scipy(city_label, G, G_final, num_samples=100000)
