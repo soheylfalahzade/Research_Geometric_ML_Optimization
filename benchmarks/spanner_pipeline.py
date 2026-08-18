@@ -1,8 +1,7 @@
 """
 ================================================================================
-Q1 GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
+GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
 ================================================================================
-Target Journal: Q1 (IEEE Transactions on Intelligent Transportation Systems)
 Status: Under active development; not yet submitted
 Author: Soheyl Falahzade
 
@@ -522,7 +521,7 @@ def main():
     final_results = [compute_final_metrics_directed(model, res) for res in city_results]
 
     print("\n" + "=" * 100)
-    print("      FINAL Q1 MASTER BENCHMARK — DIRECTED GEOMETRIC FEEDBACK LOOP")
+    print("      FINAL MASTER BENCHMARK — DIRECTED GEOMETRIC FEEDBACK LOOP")
     print("=" * 100)
     df_final = pd.DataFrame(final_results)
     df_show = df_final[['City', 'Sparsification', 'SCC', 'Avg Stretch', 'Max Stretch', 'Repairs']]
@@ -545,7 +544,7 @@ def main():
     for city, losses in loss_history.items():
         plt.plot(range(1, len(losses)+1), losses, marker='o', lw=2, label=city)
     plt.title("Continual Learning Stability via Memory Buffer", fontsize=14, fontweight='bold')
-    plt.xlabel("Fine-tuning Epochs"); plt.ylabel("Total Combined Loss"); plt.legend(); plt.grid(alpha=0.3)
+    plt.xlabel("Fine-tuning Epochs"); plt.ylabel("Loss = current-city loss + 0.5 × replay-buffer loss"); plt.legend(); plt.grid(alpha=0.3)
     plt.savefig(DEFAULT_FIGURES_DIR / 'q1_continual_learning_loss.png', dpi=300)
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=False, sharey=False)
@@ -557,7 +556,7 @@ def main():
         ax.set_xlabel(r"|d(u,v) - d(v,u)| (m)")
         ax.set_ylabel("Frequency")
         ax.grid(alpha=0.3)
-    fig.suptitle("Visual Proof of Directed Traffic Asymmetry (Gap 7)", fontsize=15, fontweight='bold')
+    fig.suptitle("Empirical Evidence of Directed Traffic Asymmetry", fontsize=15, fontweight='bold')
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(DEFAULT_FIGURES_DIR / 'q1_directed_asymmetry_proof.png', dpi=300)
 

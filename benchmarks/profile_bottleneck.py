@@ -25,7 +25,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import connected_components
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from q1_glv_ultimate_optimizer import (  # noqa: E402
+from spanner_pipeline import (  # noqa: E402
     GeometricEdgeSAGE, glv_repair_directed, CITIES, PRUNING_THRESHOLD, MC_SAMPLES, GLV_T_LIMIT
 )
 
