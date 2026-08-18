@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra
 
 # وارد کردن مدل و تنظیمات از فایل اصلی
-from q1_glv_ultimate_optimizer import GeometricEdgeSAGE, glv_repair_directed, CITIES
+from spanner_pipeline import GeometricEdgeSAGE, glv_repair_directed, CITIES
 
 def run_high_t_benchmark():
     print("--- 🔬 Running Aggressive Sparsification with Dynamic T-Limits (Priority 1) ---")

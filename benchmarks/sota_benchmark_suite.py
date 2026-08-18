@@ -1,6 +1,6 @@
 """
 ================================================================================
-Q1 SCIENTIFIC BENCHMARKER — SOTA Comparison Suite
+SCIENTIFIC BENCHMARKER — SOTA Comparison Suite
 ================================================================================
 Addressing Reviewer Critical Gaps:
 1. Isolated Inference Time: Comparing Online GNN vs. Iterative Greedy.
@@ -22,7 +22,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra, connected_components
 
 # وارد کردن مدل و تنظیمات از فایل اصلی
-from q1_glv_ultimate_optimizer import (
+from spanner_pipeline import (
     GeometricEdgeSAGE, PRUNING_THRESHOLD, MC_SAMPLES, CITIES
 )
 
@@ -83,7 +83,7 @@ def run_stress_test_ablation(model, x, edge_idx, edge_attr, edge_list, G):
     return get_max_stretch(probs_mc), get_max_stretch(probs_det)
 
 def main_redemption_suite():
-    print("--- 🔬 Starting Q1 Redemption Suite: Fixing the Speedup & Ablation Paradox ---")
+    print("--- 🔬 Starting SOTA Comparison Suite ---")
     weights_path = "best_base_model.pt"
     model = GeometricEdgeSAGE()
     model.load_state_dict(torch.load(weights_path, weights_only=True, map_location="cpu"))

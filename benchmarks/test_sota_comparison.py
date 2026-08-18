@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra
 
 # وارد کردن مدل و توابع اصلی از ابر-پروژه شما
-from q1_glv_ultimate_optimizer import GeometricEdgeSAGE, glv_repair_directed, PRUNING_THRESHOLD, MC_SAMPLES
+from spanner_pipeline import GeometricEdgeSAGE, glv_repair_directed, PRUNING_THRESHOLD, MC_SAMPLES
 
 def run_classic_greedy_spanner(G, t_limit=1.5):
     """
@@ -125,7 +125,7 @@ def compare_results():
     ]
     
     print("\n" + "="*80)
-    print("               FINAL SOTA COMPARISON TABLE FOR Q1 PAPER")
+    print("               FINAL SOTA COMPARISON TABLE")
     print("="*80)
     print(pd.DataFrame(results).to_string(index=False))
     print("="*80)

@@ -11,7 +11,7 @@ import pandas as pd
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # وارد کردن توابع مورد نیاز از فایل اصلی پروژه
-from q1_glv_ultimate_optimizer import (
+from spanner_pipeline import (
     GeometricEdgeSAGE, train_base_model, city_worker,
     finetune_on_repairs, glv_repair, CITIES
 )
@@ -88,7 +88,7 @@ def main():
     model = finetune_on_repairs(model, city_results)
 
     # ۳. شروع آزمون علمی مونت‌کارلو برای شهرهای پاریس و رم
-    print("\nStep 4: Running Q1 Rigorous Monte Carlo Verification...")
+    print("\nStep 4: Running Monte Carlo Verification...")
     plt.figure(figsize=(10, 6))
     
     stats_summary = []
@@ -159,7 +159,7 @@ def main():
     
     # چاپ جدول نتایج آماری برای پاسخ به کامنت داور
     print("\n" + "="*85)
-    print("     Q1 MONTE CARLO STRETCH VALIDATION METRICS (10^5 RANDOM ROUTE PAIRS)")
+    print("     MONTE CARLO STRETCH VALIDATION METRICS (10^5 RANDOM ROUTE PAIRS)")
     print("="*85)
     print(pd.DataFrame(stats_summary).to_string(index=False))
     print("="*85)
