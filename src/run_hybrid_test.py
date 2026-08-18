@@ -64,6 +64,6 @@ class SpannerOptimizer:
         for _, row in df[df['predicted'] == 1].iterrows():
             pruned_G.add_edge(int(row['node_u']), int(row['node_v']), length=row['length'])
             
-        # مرحله ۲: ترمیم (تضمین ریاضی برای ژورنال Q1)
+        # مرحله ۲: ترمیم (تضمین ریاضی کران کشش)
         final_G, total_repairs = self.repair(G, pruned_G)
         return final_G, total_repairs
