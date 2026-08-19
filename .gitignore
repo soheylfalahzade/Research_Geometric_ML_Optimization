@@ -3,3 +3,6 @@
 *.Zone.Identifier
 *.Zone.Identifier
 *.Zone.Identifier
+__pycache__/
+*.pyc
+cache/
