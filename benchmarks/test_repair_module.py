@@ -8,7 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from concurrent.futures import ThreadPoolExecutor
 
 # وارد کردن مدل و توابع پایه‌ای از فایل اصلی
-from q1_glv_ultimate_optimizer import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_edge
+from spanner_pipeline import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_directed_edge
 
 def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_size=250):
     """
@@ -31,7 +31,7 @@ def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_
         batch_needs_repair = {}
         
         with ThreadPoolExecutor(max_workers=NUM_DIJKSTRA_THREADS) as pool:
-            for idx, needs in pool.map(_check_one_edge, args_list):
+            for idx, needs in pool.map(_check_one_directed_edge, args_list):
                 batch_needs_repair[idx] = needs
                 
         # اعمالِ sequential و بلادرنگ یال‌های بحرانی این دسته به گراف
@@ -102,8 +102,8 @@ def test_single_city_diamond(city_label="Eindhoven", city_query="Eindhoven, Neth
     elapsed = time.time() - t0
     
     # محاسبه متریک‌ها با استفاده از SciPy دایجسترا فوق‌سریع روی ۱۰۰,۰۰۰ نمونه تصادفی
-    from q1_glv_ultimate_optimizer import compute_global_stretch_scipy
-    print(f"[{city_label}] Computing Q1-level global stretch (10^5 pairs)...")
+    from spanner_pipeline import compute_global_stretch_scipy
+    print(f"[{city_label}] Computing high-precision global stretch (10^5 pairs)...")
     stretches = compute_global_stretch_scipy(G, G_final, num_samples=100000)
     
     sparsification = (1 - G_final.number_of_edges() / G.number_of_edges()) * 100

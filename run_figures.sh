@@ -86,12 +86,12 @@ echo "=================================================================="
 echo "در حال اجرای pipeline با: $CHOSEN"
 echo "این ممکن است چند دقیقه طول بکشد (دانلود نقشهٔ OSM + آموزش مدل)."
 echo "=================================================================="
-"$CHOSEN" benchmarks/q1_glv_ultimate_optimizer.py
+"$CHOSEN" benchmarks/spanner_pipeline.py
 
 echo ""
 echo "=================================================================="
 echo "بررسی نمودارهای تولیدشده:"
-for fig in q1_global_stretch_cdf.png q1_continual_learning_loss.png q1_directed_asymmetry_proof.png; do
+for fig in global_stretch_cdf.png continual_learning_loss.png directed_asymmetry_evidence.png; do
     if [ -f "results/figures/$fig" ]; then
         echo "  ✓ results/figures/$fig ساخته شد."
     else
