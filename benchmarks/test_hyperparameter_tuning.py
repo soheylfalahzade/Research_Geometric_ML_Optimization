@@ -10,7 +10,7 @@ from sklearn.preprocessing import StandardScaler
 from concurrent.futures import ThreadPoolExecutor
 
 # وارد کردن توابع پایه‌ای از فایل اصلی
-from q1_glv_ultimate_optimizer import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_edge, compute_global_stretch_scipy
+from spanner_pipeline import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_directed_edge, compute_global_stretch_scipy
 
 NEW_FINETUNE_EPOCHS = 5       # ۵ اپوک فین‌تیون نرم
 NEW_FINETUNE_LR     = 0.0001  # نرخ یادگیری ملایم
@@ -27,7 +27,7 @@ def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_
         batch_needs_repair = {}
         
         with ThreadPoolExecutor(max_workers=NUM_DIJKSTRA_THREADS) as pool:
-            for idx, needs in pool.map(_check_one_edge, args_list):
+            for idx, needs in pool.map(_check_one_directed_edge, args_list):
                 batch_needs_repair[idx] = needs
                 
         for edge in batch:
@@ -38,7 +38,7 @@ def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_
     return repaired_G, repairs
 
 def test_threshold_grid_search():
-    print("--- Initiating Systematic Q1 Threshold Grid Search on [Eindhoven] ---")
+    print("--- Initiating Systematic Threshold Grid Search on [Eindhoven] ---")
     weights_path = 'best_base_model.pt'
     
     # دانلود گراف و پل‌های هندسی فقط یک‌بار برای افزایش شدید سرعت اجرای تست

@@ -538,14 +538,14 @@ def main():
     plt.axvline(1.5, color='red', linestyle='--', label='Limit (t=1.5)')
     plt.title("Empirical CDF of Directed Global Stretch", fontsize=14, fontweight='bold')
     plt.xlabel(r"Stretch Ratio ($d_{H}/d_{G}$)"); plt.ylabel(r"P(Stretch $\leq$ x)"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_global_stretch_cdf.png', dpi=300)
+    plt.savefig(DEFAULT_FIGURES_DIR / 'global_stretch_cdf.png', dpi=300)
 
     plt.figure(figsize=(10, 6))
     for city, losses in loss_history.items():
         plt.plot(range(1, len(losses)+1), losses, marker='o', lw=2, label=city)
     plt.title("Continual Learning Stability via Memory Buffer", fontsize=14, fontweight='bold')
     plt.xlabel("Fine-tuning Epochs"); plt.ylabel("Loss = current-city loss + 0.5 × replay-buffer loss"); plt.legend(); plt.grid(alpha=0.3)
-    plt.savefig(DEFAULT_FIGURES_DIR / 'q1_continual_learning_loss.png', dpi=300)
+    plt.savefig(DEFAULT_FIGURES_DIR / 'continual_learning_loss.png', dpi=300)
 
     fig, axes = plt.subplots(2, 2, figsize=(12, 9), sharex=False, sharey=False)
     colors = {'Manhattan': 'tab:blue', 'Eindhoven': 'tab:orange', 'Paris': 'tab:green', 'Rome': 'tab:red'}
@@ -558,7 +558,7 @@ def main():
         ax.grid(alpha=0.3)
     fig.suptitle("Empirical Evidence of Directed Traffic Asymmetry", fontsize=15, fontweight='bold')
     fig.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(DEFAULT_FIGURES_DIR / 'q1_directed_asymmetry_proof.png', dpi=300)
+    fig.savefig(DEFAULT_FIGURES_DIR / 'directed_asymmetry_evidence.png', dpi=300)
 
     print("\n✓ Pipeline run complete. 3 plots saved to disk.")
 

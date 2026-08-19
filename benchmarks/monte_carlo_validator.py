@@ -154,8 +154,8 @@ def main():
     plt.tight_layout()
     
     # ذخیره نمودار
-    plt.savefig('q1_global_stretch_cdf.png', dpi=300)
-    print("\n[Main] ✓ Plot saved successfully as 'q1_global_stretch_cdf.png'")
+    plt.savefig('global_stretch_cdf.png', dpi=300)
+    print("\n[Main] ✓ Plot saved successfully as 'global_stretch_cdf.png'")
     
     # چاپ جدول نتایج آماری برای پاسخ به کامنت داور
     print("\n" + "="*85)
