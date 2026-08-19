@@ -135,7 +135,7 @@ class GeometricEdgeSAGE(nn.Module):
         return self.classifier(edge_repr)
 
 
-def q1_balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5):
+def balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5):
     """
     تابع هزینه ترکیبی: BCE + جریمه ترمیم هندسی + پاداش هرس هوشمند
     """
@@ -196,7 +196,7 @@ def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
         model.train()
         optimizer.zero_grad()
         out = model(x, edge_index, edge_attr)
-        loss = q1_balanced_loss(out, y, importance)
+        loss = balanced_loss(out, y, importance)
         loss.backward()
         optimizer.step()
 
