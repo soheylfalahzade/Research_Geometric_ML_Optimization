@@ -1,0 +1,5 @@
+Held-out City,Trained on,Mean Stretch,Median Stretch,99th Percentile,Max Stretch,Violation Rate (>1.5)
+Eindhoven,"Manhattan, Paris, Rome",0.9947,1.0000,1.0361,1.3837,0.0000%
+Manhattan,"Eindhoven, Paris, Rome",1.0020,1.0000,1.0562,1.2861,0.0000%
+Paris,"Eindhoven, Manhattan, Rome",1.0001,1.0000,1.0289,1.2100,0.0000%
+Rome,"Eindhoven, Manhattan, Paris",1.0003,1.0000,1.0231,1.1401,0.0000%

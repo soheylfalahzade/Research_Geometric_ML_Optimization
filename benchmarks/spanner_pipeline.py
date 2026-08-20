@@ -69,7 +69,12 @@ GLV_BATCH_SIZE       = 250    # اندازه دسته‌ها در ترمیم ت�
 PRUNING_THRESHOLD    = 0.40   # آستانه بهینه پارتو
 MC_SAMPLES           = 10     # تعداد دفعات استنتاج برای MC-Dropout (Gap 9)
 REPLAY_BUFFER_SIZE   = 5      # تعداد تجربه‌های ذخیره شده از هر شهر (Gap 3)
-CENTRALITY_K_SAMPLES = 500    # تعداد گره‌ی نمونه برای تخمین Edge Betweenness Centrality
+RANDOM_SEED = 42
+torch.manual_seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+random.seed(RANDOM_SEED)
+
+CENTRALITY_K_SAMPLES = 80    # تعداد گره‌ی نمونه برای تخمین Edge Betweenness Centrality
 
 
 # ──────────────────────────────────────────────
