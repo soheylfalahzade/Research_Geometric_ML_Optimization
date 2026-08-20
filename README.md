@@ -34,6 +34,8 @@ This table was independently recomputed (separately from the project's own scrip
 
 ### 2. Comparison of three pruning-decision mechanisms (mean +/- std over 15-18 independent seeds, matched sparsification)
 
+Source: `results/raw_runs/fuzzy_pruning_20260705_150416.csv`
+
 | City | n | C: GA-tuned threshold + feedback | D: Random pruning | E: Fuzzy pruning (proposed) |
 |---|---|---|---|---|
 | Eindhoven | 15 | 2624.6 +/- 11.4 | 2437.1 +/- 16.5 | 2189.2 +/- 24.2 |
