@@ -73,6 +73,16 @@ The figures below were regenerated with the current model (GNN + edge-centrality
 **Empirical evidence of directed traffic asymmetry** -- mean |d(u,v) - d(v,u)| per city. *Audit note:* an earlier version of this computation had a bug that re-ran Dijkstra from the same source on the forward distance array itself -- which trivially produced ~0 difference regardless of the graph's real asymmetry. This has been fixed (see `benchmarks/spanner_pipeline.py`, `compute_global_stretch()`) by computing reverse-direction distances on the transposed adjacency matrix.
 
 ![Directed traffic asymmetry evidence](results/figures/directed_asymmetry_evidence.png)
+## Scale Limitations (Tested, Not Fixed)
+
+The model was trained on graphs of ~4,500-43,000 nodes (Manhattan through Rome). To test how far this scales, it was run zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges), loaded from a local OSM PBF extract rather than the live Overpass API.
+
+**Correctness held:** mean stretch 1.0009, median 1.0000, max 1.3493, zero violations of t=1.5 across 218.8 million sampled pairs.
+
+**Efficiency collapsed:** only 0.09% of edges were pruned (738 of 831,958), versus 99.5%+ at the trained scale (4,500-43,000 nodes). The model still produces a mathematically valid spanner, but at this scale it provides essentially no practical sparsification benefit -- most edges are classified as "keep."
+
+This is reported as a known limitation, not hidden or worked around: the current edge-centrality feature and pruning threshold, calibrated on graphs two orders of magnitude smaller, do not transfer to Tokyo-scale networks without retraining or recalibration. Extending training data to include one or more 400,000+ node cities is the natural next step, not yet done.
+
 ## Leave-One-City-Out Cross-Validation (Zero-Shot Generalization)
 
 To test whether the model generalizes to unseen road-network topology (rather than memorizing city-specific patterns), the model was fine-tuned on 3 cities and evaluated zero-shot on the 4th, rotated across all 4 cities:
