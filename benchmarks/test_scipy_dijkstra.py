@@ -16,7 +16,7 @@ matrix = nx.adjacency_matrix(G, nodelist=nodes, weight='length')
 
 # ۳. اجرای الگوریتم دایجسترا از گره شماره ۲ به بقیه گره‌ها
 sources = [2]
-distances = dijkstra(matrix, directed=False, indices=sources)
+distances = dijkstra(matrix, directed=True, indices=sources)
 
 print("Distance matrix computed successfully:")
 print(distances)
