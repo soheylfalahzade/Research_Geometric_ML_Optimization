@@ -30,7 +30,7 @@ Transparently reported negative result (also in the paper): evolutionary search 
 | Paris | 8,236 | 17,891 | 3.256 | 0.193 +/- 0.064 | 16.89x |
 | Rome | 42,788 | 88,618 | 46.626 | 1.097 +/- 0.154 | 42.51x |
 
-This table was independently recomputed (separately from the project's own scripts) from `results/raw_runs/full_benchmark_20260819_140626.csv`, per Rule 1 of the verification methodology. The last column shows the tested stretch bound t = 1.5 is never violated, even in the worst case.
+This table was independently recomputed (separately from the project's own scripts) from `results/raw_runs/full_benchmark_20260706_144626.csv`, per Rule 1 of the verification methodology. The last column shows the tested stretch bound t = 1.5 is never violated, even in the worst case.
 
 ### 2. Comparison of three pruning-decision mechanisms (mean +/- std over 15-18 independent seeds, matched sparsification)
 
