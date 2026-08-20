@@ -64,7 +64,13 @@ The figures below were regenerated with the current model (GNN + edge-centrality
 **Combined overlay:**
 
 ![Empirical CDF of directed stretch](results/figures/global_stretch_cdf.png)
+**Continual-learning fine-tuning loss** per city (loss = current-city loss + 0.5 x replay-buffer loss) -- Rome shows a temporary increase between epochs 4-5, plausible given the small replay buffer (max 3 prior cities) and short fine-tuning schedule (5 epochs/city), but not yet confirmed across multiple seeds.
 
+![Continual learning stability](results/figures/continual_learning_loss.png)
+
+**Empirical evidence of directed traffic asymmetry** -- mean |d(u,v) - d(v,u)| per city. *Audit note:* an earlier version of this computation had a bug that re-ran Dijkstra from the same source on the forward distance array itself -- which trivially produced ~0 difference regardless of the graph's real asymmetry. This has been fixed (see `benchmarks/spanner_pipeline.py`, `compute_global_stretch()`) by computing reverse-direction distances on the transposed adjacency matrix.
+
+![Directed traffic asymmetry evidence](results/figures/directed_asymmetry_evidence.png)
 ## Leave-One-City-Out Cross-Validation (Zero-Shot Generalization)
 
 To test whether the model generalizes to unseen road-network topology (rather than memorizing city-specific patterns), the model was fine-tuned on 3 cities and evaluated zero-shot on the 4th, rotated across all 4 cities:
@@ -80,13 +86,7 @@ Zero-shot performance on held-out cities is statistically indistinguishable from
 
 ![Leave-one-city-out CDF](results/figures/leave_one_city_out_cdf.png)
 
-**Continual-learning fine-tuning loss** per city (loss = current-city loss + 0.5 x replay-buffer loss) -- Rome shows a temporary increase between epochs 4-5, plausible given the small replay buffer (max 3 prior cities) and short fine-tuning schedule (5 epochs/city), but not yet confirmed across multiple seeds.
 
-![Continual learning stability](results/figures/continual_learning_loss.png)
-
-**Empirical evidence of directed traffic asymmetry** -- mean |d(u,v) - d(v,u)| per city. *Audit note:* an earlier version of this computation had a bug that re-ran Dijkstra from the same source on the forward distance array itself -- which trivially produced ~0 difference regardless of the graph's real asymmetry. This has been fixed (see `benchmarks/spanner_pipeline.py`, `compute_global_stretch()`) by computing reverse-direction distances on the transposed adjacency matrix.
-
-![Directed traffic asymmetry evidence](results/figures/directed_asymmetry_evidence.png)
 
 ## Verified but Not Yet Used in the Paper
 
