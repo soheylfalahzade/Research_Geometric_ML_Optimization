@@ -73,6 +73,22 @@ The figures below were regenerated with the current model (GNN + edge-centrality
 **Empirical evidence of directed traffic asymmetry** -- mean |d(u,v) - d(v,u)| per city. *Audit note:* an earlier version of this computation had a bug that re-ran Dijkstra from the same source on the forward distance array itself -- which trivially produced ~0 difference regardless of the graph's real asymmetry. This has been fixed (see `benchmarks/spanner_pipeline.py`, `compute_global_stretch()`) by computing reverse-direction distances on the transposed adjacency matrix.
 
 ![Directed traffic asymmetry evidence](results/figures/directed_asymmetry_evidence.png)
+## Stratified 5-Fold Cross-Validation
+
+The base GNN model's edge-classification performance was evaluated using stratified 5-fold cross-validation (accounting for the ~89/11 class imbalance in `is_spanner_edge`), on the synthetic training dataset (95,122 edges). A duplicate-feature bug (`u_degree` was mistakenly used twice instead of including `v_degree`) was found and fixed; the fix improved mean F1 from 0.8739 to 0.8788 with negligible change to AUC.
+
+| Fold | AUC | F1 | Precision | Recall |
+|---|---|---|---|---|
+| 1 | 0.7256 | 0.8741 | 0.9353 | 0.8205 |
+| 2 | 0.7087 | 0.8803 | 0.9290 | 0.8364 |
+| 3 | 0.7029 | 0.8884 | 0.9285 | 0.8516 |
+| 4 | 0.7217 | 0.8779 | 0.9335 | 0.8286 |
+| 5 | 0.7232 | 0.8733 | 0.9355 | 0.8189 |
+
+**Mean AUC: 0.7164 +/- 0.0100, Mean F1: 0.8788 +/- 0.0061**
+
+**Methodological caveat, stated honestly:** this is edge-level stratified k-fold on a graph where edges share nodes. Because nodes can appear in both a training fold (via one edge) and a test fold (via a different edge), there is a mild information leakage risk from spatial autocorrelation between neighboring edges -- a known limitation for graph-structured data (see e.g. spatial cross-validation literature). This is why the Leave-One-City-Out result below is treated as the more rigorous generalization test: it holds out entire cities, eliminating this leakage entirely.
+
 ## Scale Limitations (Tested, Not Fixed)
 
 The model was trained on graphs of ~4,500-43,000 nodes (Manhattan through Rome). To test how far this scales, it was run zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges), loaded from a local OSM PBF extract rather than the live Overpass API.
