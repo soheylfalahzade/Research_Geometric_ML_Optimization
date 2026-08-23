@@ -178,8 +178,8 @@ def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
     node_feat_map = {}
     for _, row in df.iterrows():
         # ویژگی‌های ۳تایی برای هر گره
-        node_feat_map[node_map[row["node_u"]]] = [row["u_degree"], row["u_degree"], row["u_pagerank"]]
-        node_feat_map[node_map[row["node_v"]]] = [row["v_degree"], row["v_degree"], row["v_pagerank"]]
+        node_feat_map[node_map[row["node_u"]]] = [row["u_degree"], row["v_degree"], row["u_pagerank"]]
+        node_feat_map[node_map[row["node_v"]]] = [row["v_degree"], row["u_degree"], row["v_pagerank"]]
 
     x = torch.tensor([node_feat_map.get(i, [0.0, 0.0, 0.0]) for i in range(len(nodes_unique))], dtype=torch.float)    
     y = torch.tensor(df["is_spanner_edge"].values, dtype=torch.float).view(-1, 1)
