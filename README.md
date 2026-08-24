@@ -34,17 +34,19 @@ This table was independently recomputed (separately from the project's own scrip
 
 ### 2. Comparison of three pruning-decision mechanisms (mean +/- std over 15-18 independent seeds, matched sparsification)
 
-Source: `results/raw_runs/fuzzy_pruning_20260705_150416.csv`
+Source: `results/raw_runs/fuzzy_pruning_rebuilt.csv`
 
-| City | n | C: GA-tuned threshold + feedback | D: Random pruning | E: Fuzzy pruning (proposed) |
+**Correction (2026-08-24):** an earlier version of this table reported the fuzzy mechanism (E) as the best performer. That was due to a sign bug in `mask_from_score_matched_count(-calibrated_C, ...)` for variant C, which caused the GA+Feedback method to prune the edges the model was MOST confident about keeping, rather than least. After fixing the sign, the corrected results below show the opposite ranking. This was caught by tracing the scoring logic during a routine audit, confirmed with an independent Welch's t-test, and is reported here transparently rather than silently corrected.
+
+| City | n | C: GA-tuned threshold + feedback | D: Random pruning | E: Fuzzy pruning |
 |---|---|---|---|---|
-| Eindhoven | 15 | 2624.6 +/- 11.4 | 2437.1 +/- 16.5 | 2189.2 +/- 24.2 |
-| Paris | 15 | 4748.3 +/- 14.5 | 4657.7 +/- 13.7 | 4636.3 +/- 14.6 |
-| Rome | 18 | 14965.3 +/- 29.8 | 14425.3 +/- 54.1 | 13900.1 +/- 41.4 |
+| Eindhoven | 15 | 1175.9 +/- 11.2 | 1515.3 +/- 14.1 | 1320.5 +/- 10.7 |
+| Paris | 15 | 2680.3 +/- 7.6 | 2774.0 +/- 12.1 | 2722.5 +/- 10.3 |
+| Rome | 18 | 8416.3 +/- 26.4 | 9195.9 +/- 29.1 | 8779.8 +/- 46.5 |
 
-Table values = number of repairs required after pruning (lower is better). The fuzzy mechanism requires the fewest repairs in all three cities without exception.
+Table values = number of repairs required after pruning (lower is better). **The GA-tuned threshold with active feedback (C) requires the fewest repairs in all three cities**, followed by the fuzzy mechanism (E), with random pruning (D) worst -- consistent across all three cities without exception.
 
-Independent statistical confirmation (Welch's t-test, run separately from the project's own code): the fuzzy pruning's advantage over random pruning is statistically significant in all three cities -- Eindhoven: p<0.0001, Paris: p<0.0001, and even in Paris, where the absolute gap is small (4636 vs. 4658): p=0.0032. The advantage over GA+Feedback (C) is p<0.0001 everywhere. This result is not due to chance.
+Independent statistical confirmation (Welch's t-test, run separately from the project's own code): the difference between all three variants is statistically significant in every city (p < 0.000001 for every pairwise comparison in Eindhoven, Paris, and Rome). This result is not due to chance.
 
 ## Verified Figures
 

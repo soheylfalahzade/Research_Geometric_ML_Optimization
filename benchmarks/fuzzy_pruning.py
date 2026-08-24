@@ -263,7 +263,7 @@ def run_city(city_label, city_query, base_model, n_seeds, base_threshold=0.40):
         model_ft = active_feedback_finetune(base_model, x_local, edge_idx, edge_attr_loc,
                                              edge_list, removed_C0, repairs_C0, n_edges)
         calibrated_C = get_calibrated_probs(model_ft, x_local, edge_idx, edge_attr_loc, seed)
-        mask_C = mask_from_score_matched_count(-calibrated_C, n_edges, n_target, edge_list, G)
+        mask_C = mask_from_score_matched_count(calibrated_C, n_edges, n_target, edge_list, G)
         G_final_C, removed_C, repairs_C = build_and_repair(G, edge_list, mask_C)
         stretches_C, scc_C = compute_stretch_and_scc(G, G_final_C, seed=seed)
         rows.append(_row(city_label, "C_GA_Threshold_plus_Feedback", seed,
