@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from spanner_pipeline import (
     GeometricEdgeSAGE, train_base_model, compute_edge_centrality,
     build_edge_features, glv_repair_directed, DEFAULT_MODEL_PT,
-    PRUNING_THRESHOLD, MC_SAMPLES
+    PRUNING_THRESHOLD, MC_SAMPLES, RANDOM_SEED
 )
 
 CENTRALITY_K_SCALE_TEST = 10
@@ -58,6 +58,13 @@ def main():
     edge_attr_loc = build_edge_features(edge_list, centrality_dict)
 
     model.train()
+    # Re-seed immediately before the stochastic MC-Dropout pass. Without this,
+    # the module-level seed set at import time in spanner_pipeline.py can be
+    # advanced by an unknown number of earlier RNG draws (model init, graph
+    # construction), so the exact pruned-edge count was not reproducible
+    # run-to-run. This line pins the dropout masks so re-running this script
+    # on the same graph always yields the same pruning decision.
+    torch.manual_seed(RANDOM_SEED)
     mc_preds = []
     with torch.no_grad():
         for _ in range(MC_SAMPLES):

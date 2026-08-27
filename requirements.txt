@@ -18,6 +18,7 @@ scikit-learn>=1.5
 
 # --- داده‌های مکانی / OSM ---
 osmnx>=1.9
+pyrosm>=0.6  # used by benchmarks/scale_test_tokyo.py and leave_one_scale_out.py (local PBF loading)
 
 # --- رسم و گزارش ---
 matplotlib>=3.9

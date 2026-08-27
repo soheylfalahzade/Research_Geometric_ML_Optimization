@@ -91,29 +91,13 @@ The base GNN model's edge-classification performance was evaluated using stratif
 
 **Methodological caveat, stated honestly:** this is edge-level stratified k-fold on a graph where edges share nodes. Because nodes can appear in both a training fold (via one edge) and a test fold (via a different edge), there is a mild information leakage risk from spatial autocorrelation between neighboring edges -- a known limitation for graph-structured data (see e.g. spatial cross-validation literature). This is why the Leave-One-City-Out result below is treated as the more rigorous generalization test: it holds out entire cities, eliminating this leakage entirely.
 
-## Stratified 5-Fold Cross-Validation
-
-The base GNN model's edge-classification performance was evaluated using stratified 5-fold cross-validation (accounting for the ~89/11 class imbalance in `is_spanner_edge`), on the synthetic training dataset (95,122 edges). A duplicate-feature bug (`u_degree` was mistakenly used twice instead of including `v_degree`) was found and fixed; the fix improved mean F1 from 0.8739 to 0.8788 with negligible change to AUC.
-
-| Fold | AUC | F1 | Precision | Recall |
-|---|---|---|---|---|
-| 1 | 0.7256 | 0.8741 | 0.9353 | 0.8205 |
-| 2 | 0.7087 | 0.8803 | 0.9290 | 0.8364 |
-| 3 | 0.7029 | 0.8884 | 0.9285 | 0.8516 |
-| 4 | 0.7217 | 0.8779 | 0.9335 | 0.8286 |
-| 5 | 0.7232 | 0.8733 | 0.9355 | 0.8189 |
-
-**Mean AUC: 0.7164 +/- 0.0100, Mean F1: 0.8788 +/- 0.0061**
-
-**Methodological caveat, stated honestly:** this is edge-level stratified k-fold on a graph where edges share nodes. Because nodes can appear in both a training fold (via one edge) and a test fold (via a different edge), there is a mild information leakage risk from spatial autocorrelation between neighboring edges -- a known limitation for graph-structured data (see e.g. spatial cross-validation literature). This is why the Leave-One-City-Out result below is treated as the more rigorous generalization test: it holds out entire cities, eliminating this leakage entirely.
-
 ## Scale Limitations (Tested, Not Fixed)
 
 The model was trained on graphs of ~4,500-43,000 nodes (Manhattan through Rome). To test how far this scales, it was run zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges), loaded from a local OSM PBF extract rather than the live Overpass API.
 
-**Correctness held:** mean stretch 1.0009, median 1.0000, max 1.3493, zero violations of t=1.5 across 218.8 million sampled pairs.
+**Correctness held:** mean stretch 1.0010, median 1.0000, max 1.3493, zero violations of t=1.5 across 218.8 million sampled pairs. Verified reproducible: re-running this test twice in a row (see `results/raw_runs/tokyo_scale_test_verified.log`) produces byte-identical stretch statistics after pinning the MC-Dropout seed (see `benchmarks/scale_test_tokyo.py`).
 
-**Efficiency collapsed:** only 0.09% of edges were pruned (738 of 831,958), versus 99.5%+ at the trained scale (4,500-43,000 nodes). The model still produces a mathematically valid spanner, but at this scale it provides essentially no practical sparsification benefit -- most edges are classified as "keep."
+**Efficiency collapsed:** only 0.09% of edges were pruned (755 of 831,958), versus 99.5%+ at the trained scale (4,500-43,000 nodes). The model still produces a mathematically valid spanner, but at this scale it provides essentially no practical sparsification benefit -- most edges are classified as "keep." Source: `results/raw_runs/tokyo_scale_test_verified.log`.
 
 This is reported as a known limitation, not hidden or worked around: the current edge-centrality feature and pruning threshold, calibrated on graphs two orders of magnitude smaller, do not transfer to Tokyo-scale networks without retraining or recalibration. Extending training data to include one or more 400,000+ node cities is the natural next step, not yet done.
 
@@ -166,7 +150,7 @@ python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 
 python benchmarks/spanner_pipeline.py       # Run full benchmark suite across cities
-python benchmarks/run_hybrid_test.py         # GNN + fuzzy pruning inference
+python src/run_hybrid_test.py                # GNN + fuzzy pruning inference
 ```
 
 ## License

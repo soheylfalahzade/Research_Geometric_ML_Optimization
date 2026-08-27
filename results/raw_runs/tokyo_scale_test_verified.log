@@ -1,0 +1,10 @@
+[Scale Test] Loading Tokyo from local pbf...
+[Scale Test] Raw graph: 437623 nodes, 831958 edges
+[Scale Test] SCC extraction: 437623 -> 437623 nodes (11.0s)
+[Scale Test] Centrality (k=10) done in 47.1s
+[Scale Test] Running Directed GLV-Repair (160052 candidates)...
+[Scale Test] GLV-Repair done in 29.5s
+[Scale Test] Full pipeline (pre-verification) total time: 154.9s
+[Scale Test] Full graph edges: 831958, Spanner edges: 831203, Pruned: 0.09%
+[Scale Test] Verification done in 91.0s on 218811000 pairs
+[Scale Test] Mean: 1.0010, Median: 1.0000, Max: 1.3493, Violations(>1.5): 0.0000%
