@@ -454,7 +454,7 @@ def finetune_on_repairs_continual(model, city_results):
 # ──────────────────────────────────────────────
 # ۶. استخراج متریک‌های نهایی و اثبات بصری جهت‌داری
 # ──────────────────────────────────────────────
-def compute_final_metrics_directed(model, res):
+def compute_final_metrics_directed(model, res, disable_safeguard=False):
     label = res["city_label"]
     G, edge_list = res["_G"], res["_edge_list"]
 
@@ -470,7 +470,7 @@ def compute_final_metrics_directed(model, res):
     G_opt.add_nodes_from(G.nodes())
     removed = []
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = False if disable_safeguard else ((G.in_degree(v) <= 1) or (G.out_degree(u) <= 1))
         if final_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_opt.add_edge(u, v, length=d["length"])
         else:

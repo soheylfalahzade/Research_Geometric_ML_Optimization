@@ -70,23 +70,14 @@ def run_ablation_experiment():
     })
     spanner_pipeline.MC_SAMPLES = original_mc # بازگرداندن به حالت قبل
 
-    # سناریو ۳: بدون محافظت گره‌ها (No Safeguards)
-    # ⚠️ هشدار روش‌شناسی: این سناریو در نسخهٔ قبلی این فایل اصلاً اجرا
-    # نمی‌شد -- به‌جایش سه مقدار دستی و از پیش‌نوشته ("Higher (Risk)",
-    # "> 1.5 (Predicted)", "Failed (Disconnected)") در جدول نتایج به‌جای
-    # اندازه‌گیری واقعی جا زده می‌شد. طبق قانون ۱ و ۳ متدولوژی، این نوع
-    # داده‌ی ساختگی هرگز نباید کنار نتایج واقعی در یک جدول ظاهر شود.
-    # پیاده‌سازی واقعی این سناریو (خاموش‌کردن شرط is_bottleneck در تابع
-    # city_worker) نیاز به تغییر امضای آن تابع دارد که خارج از دامنهٔ این
-    # اصلاح خودکار است. تا وقتی این آزمایش واقعاً اجرا و اندازه‌گیری نشود،
-    # به‌صراحت به‌عنوان «انجام‌نشده» علامت‌گذاری می‌شود -- نه یک نتیجهٔ جعلی.
-    print("\n[Scenario 3] SKIPPED — not yet implemented as a real experiment.")
-    print("             (see comment above; do not fabricate numbers here)")
+    # سناریو ۳: بدون محافظت گره‌ها (No Safeguards) — اجرای واقعی
+    print("\n[Scenario 3] Running WITHOUT topology safeguard (is_bottleneck disabled)...")
+    metrics_no_safeguard = compute_final_metrics_directed(model_full, res_full, disable_safeguard=True)
     ablation_results.append({
         "Configuration": "w/o Topology Safeguards",
-        "Sparsification": "NOT MEASURED",
-        "Max Stretch": "NOT MEASURED",
-        "SCC": "NOT MEASURED"
+        "Sparsification": metrics_no_safeguard["Sparsification"],
+        "Max Stretch": metrics_no_safeguard["Max Stretch"],
+        "SCC": metrics_no_safeguard["SCC"]
     })
 
     # نمایش جدول نهایی ابطالی
