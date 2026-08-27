@@ -6,3 +6,11 @@
 __pycache__/
 *.pyc
 cache/
+
+# LaTeX build artifacts (regenerated on every compile, not source)
+*.aux
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.toc
