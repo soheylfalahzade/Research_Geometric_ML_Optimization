@@ -126,20 +126,22 @@ Zero-shot performance on held-out cities is statistically indistinguishable from
 
 ```
 Research_Geometric_ML_Optimization/
-|-- benchmarks/        # Experiment and validation scripts (spanner_pipeline.py, run_hybrid_test.py)
-|-- src/                # Supporting modules
+|-- benchmarks/        # Experiment and validation scripts (spanner_pipeline.py, ablation, k-fold, etc.)
+|-- src/               # Supporting modules (run_hybrid_test.py)
 |-- results/
-|   |-- data/           # Datasets from OSMnx (input)
-|   |-- figures/        # Raw output figures (see 'Verified Figures' above for the ones actually cited)
-|   |-- raw_runs/        # Raw per-seed logs -- the source of every number above
-|   |-- logs/
-|   `-- models/          # Trained model weights (excluded from GitHub's language stats)
-|-- docs/                # Interactive HTML maps (excluded from GitHub's language stats)
+|   |-- data/          # Datasets from OSMnx (input)
+|   |-- figures/       # Raw output figures (see 'Verified Figures' above for the ones actually cited)
+|   |-- raw_runs/      # Raw per-seed logs -- the source of every number above
+|   `-- models/        # Trained model weights (excluded from GitHub's language stats)
+|-- logs/              # Dataset-build console logs (data_generator.py runs)
+|-- docs/              # Interactive HTML maps (excluded from GitHub's language stats)
 |-- paper/
-|   |-- Main_Paper.tex   # Current manuscript (LaTeX source)
-|   `-- Main_Paper.pdf   # Builds directly from the paper source
-|-- data_generator.py    # Builds datasets from OSMnx, computes exact Greedy ground truth
+|   |-- Main_Paper.tex # Current manuscript (LaTeX source)
+|   |-- Main_Paper.pdf # Builds directly from the paper source
+|   `-- updates/       # Section drafts staged before merging into Main_Paper.tex
+|-- data_generator.py  # Builds datasets from OSMnx, computes exact Greedy ground truth
 |-- requirements.txt
+|-- LICENSE
 `-- .gitignore
 ```
 
