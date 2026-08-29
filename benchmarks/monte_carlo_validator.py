@@ -14,7 +14,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from spanner_pipeline import (
     DEFAULT_FIGURES_DIR,
     GeometricEdgeSAGE, train_base_model, city_worker,
-    finetune_on_repairs_continual, glv_repair_directed, CITIES
+    finetune_on_repairs_continual, glv_repair_directed, CITIES,
+    safe_weighted_adjacency, PRUNING_THRESHOLD
 )
 
 def run_monte_carlo_scipy(city_label, G_orig, G_final, num_samples=100000):
@@ -28,7 +29,7 @@ def run_monte_carlo_scipy(city_label, G_orig, G_final, num_samples=100000):
     num_nodes = len(nodes)
     
     # تبدیل گراف‌های NetworkX به ماتریس اسپرس در SciPy
-    matrix_orig = nx.adjacency_matrix(G_orig, nodelist=nodes, weight='length')
+    matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight='length')
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight='length')
     
     # انتخاب تصادفی گره‌های مبدا
@@ -107,11 +108,17 @@ def main():
         G_opt = nx.DiGraph()
         G_opt.add_nodes_from(G.nodes())
         removed = []
+        MIN_SAFE_DEGREE = 2
+        live_out_degree = dict(G.out_degree())
+        live_in_degree = dict(G.in_degree())
         for i, (u, v, d) in enumerate(edge_list):
-            if final_probs[i] > 0.55:
+            is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
+            if final_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
                 G_opt.add_edge(u, v, length=d['length'])
             else:
                 removed.append({'u': u, 'v': v, 'length': d['length'], 'prob': final_probs[i], 'idx': i})
+                live_out_degree[u] -= 1
+                live_in_degree[v] -= 1
 
         G_final, _ = glv_repair_directed(G_opt, removed)
 

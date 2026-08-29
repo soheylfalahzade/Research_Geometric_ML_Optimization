@@ -36,7 +36,7 @@ from scipy.sparse.csgraph import dijkstra, connected_components
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from spanner_pipeline import (  # noqa: E402
     GeometricEdgeSAGE, glv_repair_directed, compute_edge_centrality, build_edge_features,
-    CITIES, MC_SAMPLES, GLV_T_LIMIT, FINETUNE_LR
+    CITIES, MC_SAMPLES, GLV_T_LIMIT, FINETUNE_LR, safe_weighted_adjacency
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -80,7 +80,7 @@ def prepare_features(G):
 
 def compute_stretch_and_scc(G_orig, G_final, seed=42, num_sources=500):
     nodes = list(G_orig.nodes())
-    matrix_orig = nx.adjacency_matrix(G_orig, nodelist=nodes, weight="length")
+    matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight="length")
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight="length")
     rng = np.random.default_rng(seed)
     sources = rng.choice(len(nodes), size=min(len(nodes), num_sources), replace=False)
@@ -97,12 +97,17 @@ def build_and_repair(G, edge_list, keep_mask, t_limit=GLV_T_LIMIT):
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
         if keep_mask[i] or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed.append({"u": u, "v": v, "length": d["length"], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
     G_final, repairs = glv_repair_directed(G_sparse, removed, t_limit=t_limit)
     return G_final, removed, repairs
 
@@ -232,23 +237,29 @@ def active_feedback_finetune(model, x_local, edge_idx, edge_attr_loc, edge_list,
 def build_matched_random_mask(G, edge_list, n_removed_target, seed):
     """
     دقیقاً n_removed_target یال را از بین یال‌های غیر-bottleneck به‌طور
-    تصادفی برای حذف انتخاب می‌کند — تطبیق دقیق sparsification با C
-    (به‌جای احتمال تصادفی که به‌خاطر یال‌های bottleneck دقیق تطبیق نمی‌داد).
+    تصادفی برای حذف انتخاب می‌کند، با دنبال‌کردن درجه‌ی زنده تا هیچ
+    گرهی زیر ۲ نیفتد (رفع همان باگ محافظ ثابت).
     """
     n_edges = len(edge_list)
-    non_bottleneck_idx = []
-    for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
-        if not is_bottleneck:
-            non_bottleneck_idx.append(i)
-
     rng = np.random.default_rng(seed)
-    n_removed_target = min(n_removed_target, len(non_bottleneck_idx))
-    removed_idx = set(rng.choice(non_bottleneck_idx, size=n_removed_target, replace=False))
+    order = rng.permutation(n_edges)
+
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
 
     keep_mask = np.ones(n_edges, dtype=bool)
-    for i in removed_idx:
-        keep_mask[i] = False
+    n_removed = 0
+    for i in order:
+        if n_removed >= n_removed_target:
+            break
+        u, v, d = edge_list[i]
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
+        if not is_bottleneck:
+            keep_mask[i] = False
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
+            n_removed += 1
     return keep_mask
 
 

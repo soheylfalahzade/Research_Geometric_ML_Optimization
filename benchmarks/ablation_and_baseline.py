@@ -25,7 +25,7 @@ from scipy.sparse.csgraph import dijkstra, connected_components
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from spanner_pipeline import (  # noqa: E402
     GeometricEdgeSAGE, glv_repair_directed, compute_edge_centrality, build_edge_features,
-    CITIES, MC_SAMPLES, GLV_T_LIMIT
+    CITIES, MC_SAMPLES, GLV_T_LIMIT, safe_weighted_adjacency
 )
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -70,7 +70,7 @@ def prepare_features(G):
 
 def compute_stretch_and_scc(G_orig, G_final, seed=42, num_sources=500):
     nodes = list(G_orig.nodes())
-    matrix_orig = nx.adjacency_matrix(G_orig, nodelist=nodes, weight="length")
+    matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight="length")
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight="length")
     rng = np.random.default_rng(seed)
     sources = rng.choice(len(nodes), size=min(len(nodes), num_sources), replace=False)
@@ -87,12 +87,17 @@ def build_and_repair(G, edge_list, keep_mask, t_limit=GLV_T_LIMIT):
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
         if keep_mask[i] or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed.append({"u": u, "v": v, "length": d["length"], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
     G_final, repairs = glv_repair_directed(G_sparse, removed, t_limit=t_limit)
     return G_final, repairs
 
