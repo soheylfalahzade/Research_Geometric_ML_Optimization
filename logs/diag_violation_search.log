@@ -1,0 +1,50 @@
+[Diag2] Loading model + city...
+
+[Base Training] Loading spatial dataset and engineering features...
+Starting base GNN training with Early Stopping...
+  Epoch 020 | Loss: 0.6685
+  Epoch 040 | Loss: 0.6037
+  Epoch 060 | Loss: 0.5848
+  Epoch 080 | Loss: 0.5794
+  Epoch 100 | Loss: 0.5770
+  Epoch 120 | Loss: 0.5758
+  Epoch 140 | Loss: 0.5742
+  Epoch 160 | Loss: 0.5730
+  Epoch 180 | Loss: 0.5727
+  Epoch 200 | Loss: 0.5711
+  Epoch 220 | Loss: 0.5707
+  Epoch 240 | Loss: 0.5694
+  Epoch 260 | Loss: 0.5686
+  Early stopping at epoch 279
+Base training complete. Weights saved → best_base_model.pt
+
+
+[Eindhoven] Starting Directed Processing (PID=1552)...
+[Eindhoven] SCC Extraction: 7957 -> 7890 nodes.
+[Eindhoven] Computing edge betweenness centrality (k=80 samples)...
+[Eindhoven] Running Directed GLV-Repair (1080 candidates)...
+[Diag2] G_final: 7890 nodes, 18109 edges
+
+[Diag3] Searching for stretch > 1.5 (theoretical bound violation) ...
+
+[Diag3] === violation 1: 42571874 -> 59936204 ===
+[Diag3]   d_orig=643.16  d_final=972.15  stretch=1.5115
+[Diag3]   out-degree(src) in G_final: 1, in-degree(dst) in G_final: 2
+
+[Diag3] === violation 2: 42571874 -> 59936222 ===
+[Diag3]   d_orig=708.17  d_final=1152.81  stretch=1.6279
+[Diag3]   out-degree(src) in G_final: 1, in-degree(dst) in G_final: 2
+
+[Diag3] === violation 3: 42571874 -> 3270197376 ===
+[Diag3]   d_orig=755.12  d_final=1199.76  stretch=1.5888
+[Diag3]   out-degree(src) in G_final: 1, in-degree(dst) in G_final: 2
+
+[Diag3] === violation 4: 42562993 -> 29654546 ===
+[Diag3]   d_orig=280.69  d_final=521.25  stretch=1.8571
+[Diag3]   out-degree(src) in G_final: 3, in-degree(dst) in G_final: 3
+
+[Diag3] === violation 5: 42562993 -> 42568013 ===
+[Diag3]   d_orig=225.17  d_final=465.73  stretch=2.0684
+[Diag3]   out-degree(src) in G_final: 3, in-degree(dst) in G_final: 3
+
+[Diag3] Total violations found (capped at 5 printed): checked 1000 sources.

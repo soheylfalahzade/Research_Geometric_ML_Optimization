@@ -99,12 +99,17 @@ def main():
         G_sparse = nx.DiGraph()
         G_sparse.add_nodes_from(G.nodes())
         removed = []
+        MIN_SAFE_DEGREE = 2
+        live_out_degree = dict(G.out_degree())
+        live_in_degree = dict(G.in_degree())
         for i, (u, v, d) in enumerate(edge_list):
-            is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+            is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
             if calibrated_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
                 G_sparse.add_edge(u, v, length=d["length"])
             else:
                 removed.append({"u": u, "v": v, "length": d["length"], "idx": i})
+                live_out_degree[u] -= 1
+                live_in_degree[v] -= 1
     print(f"  → {len(removed)} candidate edges for removal")
 
     with timed("7. GLV-Repair (the directed batch-sequential repair loop)"):

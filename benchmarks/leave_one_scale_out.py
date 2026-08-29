@@ -14,7 +14,8 @@ from spanner_pipeline import (
     GeometricEdgeSAGE, train_base_model, city_worker,
     finetune_on_repairs_continual, compute_edge_centrality,
     build_edge_features, glv_repair_directed, CITIES,
-    DEFAULT_MODEL_PT, DEFAULT_FIGURES_DIR, PRUNING_THRESHOLD, MC_SAMPLES
+    DEFAULT_MODEL_PT, DEFAULT_FIGURES_DIR, PRUNING_THRESHOLD, MC_SAMPLES,
+    safe_weighted_adjacency
 )
 
 TOKYO_PBF = '/home/soheil79/osm_data/Tokyo.osm.pbf'
@@ -62,12 +63,17 @@ def load_local_pbf_as_result(pbf_path, city_label, model):
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed_edges = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
         if calibrated_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed_edges.append({"u": u, "v": v, "length": d["length"], "prob": mean_probs[i], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
 
     print(f"[{city_label}] Running GLV-Repair ({len(removed_edges)} candidates)...")
     G_repaired, repaired_indices = glv_repair_directed(G_sparse, removed_edges)
@@ -103,7 +109,7 @@ def evaluate_city_with_model(model, res, num_samples=100000):
     print(f"[{res['city_label']}] Pruned: {pruned_pct:.2f}% ({G.number_of_edges()} -> {G_final.number_of_edges()})")
 
     nodes = list(G.nodes())
-    matrix_orig = nx.adjacency_matrix(G, nodelist=nodes, weight='length')
+    matrix_orig = safe_weighted_adjacency(G, nodelist=nodes, weight='length')
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight='length')
     rng = np.random.default_rng(42)
     num_sources = min(len(nodes), 1000)

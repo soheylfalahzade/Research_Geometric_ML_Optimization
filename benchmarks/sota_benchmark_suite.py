@@ -23,7 +23,7 @@ from scipy.sparse.csgraph import dijkstra, connected_components
 
 # وارد کردن مدل و تنظیمات از فایل اصلی
 from spanner_pipeline import (
-    GeometricEdgeSAGE, PRUNING_THRESHOLD, MC_SAMPLES, CITIES
+    GeometricEdgeSAGE, PRUNING_THRESHOLD, MC_SAMPLES, CITIES, safe_weighted_adjacency
 )
 
 def get_pure_inference_time(model, x, edge_idx, edge_attr):
@@ -75,7 +75,7 @@ def run_stress_test_ablation(model, x, edge_idx, edge_attr, edge_list, G):
         # محاسبه ضریب کشش روی نمونه‌های تصادفی
         nodes = list(G.nodes())
         sources = np.random.choice(len(nodes), 100)
-        d_orig = dijkstra(nx.adjacency_matrix(G, weight='length'), directed=True, indices=sources)
+        d_orig = dijkstra(safe_weighted_adjacency(G, nodelist=nodes, weight='length'), directed=True, indices=sources)
         d_span = dijkstra(nx.adjacency_matrix(H, weight='length'), directed=True, indices=sources)
         stretches = d_span[d_orig > 0] / d_orig[d_orig > 0]
         return np.max(stretches[stretches < np.inf]) if np.any(stretches < np.inf) else 5.0

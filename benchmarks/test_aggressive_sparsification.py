@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra
 
 # وارد کردن مدل و تنظیمات از فایل اصلی
-from spanner_pipeline import GeometricEdgeSAGE, glv_repair_directed, CITIES
+from spanner_pipeline import GeometricEdgeSAGE, glv_repair_directed, CITIES, safe_weighted_adjacency
 
 def run_aggressive_benchmark():
     print("--- 🔬 Running Aggressive Sparsification Benchmark (Priority 1) ---")
@@ -63,7 +63,7 @@ def run_aggressive_benchmark():
         # محاسبه ضریب کشش نهایی روی گراف هرس شده
         nodes = list(G.nodes())
         sources = np.random.choice(len(nodes), 200, replace=False)
-        d_orig = dijkstra(nx.adjacency_matrix(G, weight='length'), directed=True, indices=sources)
+        d_orig = dijkstra(safe_weighted_adjacency(G, nodelist=list(G.nodes()), weight='length'), directed=True, indices=sources)
         d_span = dijkstra(nx.adjacency_matrix(G_repaired, weight='length'), directed=True, indices=sources)
         
         stretches = d_span[d_orig > 0] / d_orig[d_orig > 0]

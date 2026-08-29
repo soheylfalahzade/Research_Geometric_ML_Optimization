@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from spanner_pipeline import (
     GeometricEdgeSAGE, train_base_model, compute_edge_centrality,
     build_edge_features, glv_repair_directed, DEFAULT_MODEL_PT,
-    PRUNING_THRESHOLD, MC_SAMPLES, RANDOM_SEED
+    PRUNING_THRESHOLD, MC_SAMPLES, RANDOM_SEED, safe_weighted_adjacency
 )
 
 CENTRALITY_K_SCALE_TEST = 10
@@ -77,12 +77,17 @@ def main():
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed_edges = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
         if calibrated_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed_edges.append({"u": u, "v": v, "length": d["length"], "prob": mean_probs[i], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
 
     print(f"[Scale Test] Running Directed GLV-Repair ({len(removed_edges)} candidates)...")
     t0 = time.time()
@@ -96,7 +101,7 @@ def main():
     # Independent verification (directed, sampled Monte Carlo, same as monte_carlo_validator.py)
     t0 = time.time()
     nodes = list(G.nodes())
-    matrix_orig = nx.adjacency_matrix(G, nodelist=nodes, weight='length')
+    matrix_orig = safe_weighted_adjacency(G, nodelist=nodes, weight='length')
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight='length')
     rng = np.random.default_rng(42)
     num_sources = min(len(nodes), 500)

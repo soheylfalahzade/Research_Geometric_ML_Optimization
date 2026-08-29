@@ -282,6 +282,27 @@ def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
 
 
 # ──────────────────────────────────────────────
+# ۳.۴۹ رفع باگ یال‌های موازی (Parallel-Edge Summation Bug)
+# ──────────────────────────────────────────────
+def safe_weighted_adjacency(G, nodelist, weight="length"):
+    """
+    ماتریس مجاورت وزن‌دار را حتی وقتی G یک MultiDiGraph با یال‌های موازی
+    باشد، درست می‌سازد. nx.adjacency_matrix روی MultiDiGraph وزن یال‌های
+    موازی را جمع می‌کند نه کمینه؛ این تابع کمینه‌ی هر جفت یال موازی را
+    نگه می‌دارد.
+    """
+    if G.is_multigraph():
+        G_simple = nx.DiGraph() if G.is_directed() else nx.Graph()
+        G_simple.add_nodes_from(G.nodes())
+        for u, v, d in G.edges(data=True):
+            w = d.get(weight, 1)
+            if not G_simple.has_edge(u, v) or w < G_simple[u][v].get(weight, float("inf")):
+                G_simple.add_edge(u, v, **{weight: w})
+        G = G_simple
+    return nx.adjacency_matrix(G, nodelist=nodelist, weight=weight)
+
+
+# ──────────────────────────────────────────────
 # ۳.۵ ارزیابی آماری ۱۰۰,۰۰۰ نمونه‌ای فوق‌سریع SciPy
 # ──────────────────────────────────────────────
 def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
@@ -290,7 +311,7 @@ def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
     num_nodes = len(nodes)
     if num_nodes < 2: return np.array([1.0])
 
-    matrix_orig = nx.adjacency_matrix(G_orig, nodelist=nodes, weight="length")
+    matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight="length")
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight="length")
 
     rng = np.random.default_rng(42)
@@ -378,13 +399,20 @@ def city_worker(args):
     G_sparse.add_nodes_from(G.nodes())
     removed_edges = []
 
+    # ── محافظ زنده در برابر Bottleneck (جایگزین محافظ ثابت قبلی) ──
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
+
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
 
         if calibrated_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed_edges.append({"u": u, "v": v, "length": d["length"], "prob": mean_probs[i], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
 
     print(f"[{city_label}] Running Directed GLV-Repair ({len(removed_edges)} candidates)...")
     G_repaired, repaired_indices = glv_repair_directed(G_sparse, removed_edges)
@@ -469,12 +497,20 @@ def compute_final_metrics_directed(model, res, disable_safeguard=False):
     G_opt = nx.DiGraph()
     G_opt.add_nodes_from(G.nodes())
     removed = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = False if disable_safeguard else ((G.in_degree(v) <= 1) or (G.out_degree(u) <= 1))
+        is_bottleneck = False if disable_safeguard else (
+            (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
+        )
         if final_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_opt.add_edge(u, v, length=d["length"])
         else:
             removed.append({"u": u, "v": v, "length": d["length"], "prob": final_probs[i], "idx": i})
+            if not disable_safeguard:
+                live_out_degree[u] -= 1
+                live_in_degree[v] -= 1
 
     G_final, repairs = glv_repair_directed(G_opt, removed)
 

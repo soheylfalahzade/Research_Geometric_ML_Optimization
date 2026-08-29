@@ -45,6 +45,7 @@ from spanner_pipeline import (  # noqa: E402
     PRUNING_THRESHOLD,
     MC_SAMPLES,
     GLV_T_LIMIT,
+    safe_weighted_adjacency,
 )
 
 LOG_FILE = RAW_RUNS_DIR / f"benchmark_log_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
@@ -137,12 +138,17 @@ def run_our_gnn_framework(G: nx.DiGraph, model: GeometricEdgeSAGE, edge_list, x_
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed = []
+    MIN_SAFE_DEGREE = 2
+    live_out_degree = dict(G.out_degree())
+    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
+        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
         if calibrated_probs[i] > PRUNING_THRESHOLD or is_bottleneck:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
             removed.append({"u": u, "v": v, "length": d["length"], "idx": i})
+            live_out_degree[u] -= 1
+            live_in_degree[v] -= 1
 
     G_final, repairs = glv_repair_directed(G_sparse, removed, t_limit=GLV_T_LIMIT)
 
@@ -155,7 +161,7 @@ def compute_stretch_and_scc(G_orig: nx.DiGraph, G_final: nx.DiGraph, num_sources
     if len(nodes) < 2:
         return np.array([1.0]), 1
 
-    matrix_orig = nx.adjacency_matrix(G_orig, nodelist=nodes, weight="length")
+    matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight="length")
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight="length")
 
     rng = np.random.default_rng(seed)
