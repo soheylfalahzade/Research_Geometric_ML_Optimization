@@ -50,16 +50,24 @@ Independent statistical confirmation (Welch's t-test, run separately from the pr
 
 ## Verified Figures
 
-**Note on methodology history:** the independent Monte Carlo verification script (`monte_carlo_validator.py`) originally used `scipy.sparse.csgraph.dijkstra(..., directed=False)` and an undirected `nx.Graph()` for the pruned graph -- both silently ignoring edge direction. This produced systematically biased stretch ratios (means below 1.0, which is mathematically impossible for a spanner subgraph). Fixed to `directed=True` and `nx.DiGraph()`. Post-fix, all stretch ratios are centered at 1.0 as expected.
+**Note on methodology history:** the independent Monte Carlo verification script (`monte_carlo_validator.py`) originally used `scipy.sparse.csgraph.dijkstra(..., directed=False)` and an undirected `nx.Graph()` for the pruned graph -- both silently ignoring edge direction. This produced systematically biased stretch ratios (means below 1.0, which is mathematically impossible for a spanner subgraph). Fixed to `directed=True` and `nx.DiGraph()`.
 
-The figures below were regenerated with the current model (GNN + edge-centrality feature + fuzzy pruning) using the corrected, independently-verified pipeline across all 4 cities (100,000 Monte Carlo route pairs per city):
+A second, independent bug was then found and fixed: `nx.adjacency_matrix()` sums parallel-edge weights on a `MultiDiGraph` instead of taking the minimum, which was artificially inflating "original graph" distances wherever OSM records a node pair as two or more parallel ways (see `safe_weighted_adjacency()` in `spanner_pipeline.py`).
+
+Fixing both of the above surfaced a third issue: the bottleneck safeguard that is supposed to prevent a node from being pruned down to near-isolation checked node degree against the **static original graph**, which never updates during the pruning decision loop. A node with 3 original outgoing edges could have all 3 independently pass the "don't isolate" check (since each check saw the same unchanged degree=3) and still be pruned down to a single remaining edge. Fixed by tracking each node's *live*, decreasing degree during the pruning loop and refusing to drop any node's out/in-degree below 2 (see `MIN_SAFE_DEGREE` in `spanner_pipeline.py` and `monte_carlo_validator.py`). This fix measurably improved several cities (e.g. Manhattan's max stretch dropped from 1.2861 to 1.1363).
+
+**A remaining, more fundamental limitation (not a bug -- an algorithmic property, documented rather than silently patched):** after both fixes above, one city (Eindhoven) still shows a small nonzero violation rate. Root cause, confirmed by direct inspection: `glv_repair_directed()`'s repair check (`_check_one_directed_edge`) only verifies that the two endpoints of a *specific removed edge* remain within `t_limit x (that edge's own original length)` of each other in the repaired graph. It does not check the stretch of arbitrary, unrelated (source, destination) pairs that happen to route through several independently-repaired regions. Each local repair can individually pass its own check while the *compounding* effect of several nearby prunings still produces a longer-than-guaranteed detour for a small number of unrelated OD pairs. This is a **local per-edge guarantee, not a global per-pair proof** -- a known distinction in the spanner literature between heuristic/ML-based construction (fast, empirically-validated via sampling) and classic greedy spanner construction (slower, provably worst-case bounded for every pair). The empirical violation rate below is reported honestly rather than hidden or rounded away, and is flagged for discussion with the thesis advisor as a design question (whether a global guarantee is required, and if so, what repair strategy would provide it) rather than something patched ad hoc.
+
+The figures below were regenerated with the current model (GNN + edge-centrality feature + fuzzy pruning) using the corrected, independently-verified pipeline (directed distances, parallel-edge-safe adjacency, and live-degree bottleneck protection) across all 4 cities (100,000 Monte Carlo route pairs per city):
 
 | City | Mean Stretch | Median Stretch | 99th Percentile | Max Stretch | Violation Rate (>1.5) |
 |---|---|---|---|---|---|
-| Eindhoven | 0.9950 | 1.0000 | 1.0391 | 1.3837 | 0.0000% |
-| Manhattan | 1.0017 | 1.0000 | 1.0517 | 1.2861 | 0.0000% |
-| Paris | 0.9999 | 1.0000 | 1.0282 | 1.2100 | 0.0000% |
-| Rome | 0.9998 | 1.0000 | 1.0216 | 1.1401 | 0.0000% |
+| Eindhoven | 1.0036 | 1.0000 | 1.0697 | 3.2139 | 0.0110% |
+| Manhattan | 1.0001 | 1.0000 | 1.0000 | 1.1363 | 0.0000% |
+| Paris | 1.0013 | 1.0000 | 1.0291 | 1.4389 | 0.0000% |
+| Rome | 1.0015 | 1.0000 | 1.0273 | 1.2882 | 0.0000% |
+
+Source: `results/raw_runs/mc_validator_final.log` (full console output of `monte_carlo_validator.py` with all three fixes applied).
 
 **Per-city CDF (avoids overlapping curves near stretch=1.0):**
 
