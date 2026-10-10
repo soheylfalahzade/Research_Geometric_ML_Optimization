@@ -19,6 +19,26 @@ The result is a substantial wall-clock speedup over classic Greedy Spanner while
 
 Transparently reported negative result (also in the paper): evolutionary search offers no measurable advantage over random search for tuning a single threshold -- the genuine value of the genetic algorithm in this work lies in jointly tuning multiple parameters, not single-parameter search.
 
+## Research Program
+
+This repository is one component of a connected research program on emergency-aware urban network control. The four repositories share a problem family, not code: each is self-contained and makes claims only within its own tested scope.
+
+| Repository | Setting | Role in the program | Type of guarantee |
+| --- | --- | --- | --- |
+| [`geometric-spanners-lab`](https://github.com/soheylfalahzade/geometric-spanners-lab) | Euclidean point sets, undirected | Classical greedy t-spanner baseline | Exact by construction; independently re-derived by `verify_independent.py` |
+| **[`Research_Geometric_ML_Optimization`](https://github.com/soheylfalahzade/Research_Geometric_ML_Optimization) (this repository)** | Directed OpenStreetMap road graphs | Same spanner problem, with learned (GNN + fuzzy) edge pruning for speed | Per-edge local repair guarantee; global stretch validated empirically by Monte Carlo sampling (small nonzero violation rate in one city, disclosed in that repository) |
+| [`delay-bounded-spanner-networks`](https://github.com/soheylfalahzade/delay-bounded-spanner-networks) | Directed road graphs with hourly speed profiles | Same problem under a time-varying delay constraint | Certified: an edge-wise certificate implies the all-pairs, all-hours bound (Theorem 1); congestion model is parametric, not fitted to telemetry |
+| [`anti-gridlock-signal-control`](https://github.com/soheylfalahzade/anti-gridlock-signal-control) | Single signalized intersection (SUMO) | Local control layer beneath a future network layer | Empirical (10 paired seeds); no closed-loop stability proof |
+
+**How the pieces fit.** The three spanner repositories form one line of work on sparse backbones of road networks: a classical greedy baseline, a machine-learning-accelerated variant on directed road graphs, and a variant that certifies a delay bound at every hour of the day. The signal-control repository is the local control layer that a network-level layer would sit above.
+
+**Status.** Integration of the local control layer with the network layer is planned and has not been demonstrated. Principal open items per repository:
+
+- `geometric-spanners-lab`: the OpenStreetMap experiments use node coordinates only (Euclidean metric), not road connectivity.
+- `Research_Geometric_ML_Optimization`: efficiency does not transfer to Tokyo scale (0.09% of edges pruned), and the ablation study has not yet been re-run on all four cities with the final pipeline.
+- `delay-bounded-spanner-networks`: the congestion field is parametric, not fitted to real traffic telemetry.
+- `anti-gridlock-signal-control`: fuzzy membership functions are hand-set, only one intersection is tested, and closed-loop stability is open.
+
 ## Experimental Results (from `results/raw_runs/`)
 
 ### 1. Construction speed vs. classic Greedy (mean of 5 independent seeds, cutoff-bounded repair)
@@ -27,7 +47,7 @@ Transparently reported negative result (also in the paper): evolutionary search 
 |---|---|---|---|---|---|
 | Manhattan | 4,540 | 9,766 | 0.742 | 0.110 +/- 0.044 | 6.74x |
 | Eindhoven | 7,881 | 19,051 | 1.948 | 0.206 +/- 0.039 | 9.45x |
-| Paris | 8,236 | 17,891 | 3.256 | 0.193 +/- 0.064 | 16.89x |
+| Paris     | 9,236 | 17,891 | 3.256 | 0.193 +/- 0.064 | 16.89x |
 | Rome | 42,788 | 88,618 | 46.626 | 1.097 +/- 0.154 | 42.51x |
 
 This table was independently recomputed (separately from the project's own scripts) from `results/raw_runs/full_benchmark_20260706_144626.csv`, per Rule 1 of the verification methodology. The last column shows the tested stretch bound t = 1.5 is never violated, even in the worst case.
@@ -105,11 +125,13 @@ The model was trained on graphs of ~4,500-43,000 nodes (Manhattan through Rome).
 
 **Correctness held:** mean stretch 1.0010, median 1.0000, max 1.3493, zero violations of t=1.5 across 218.8 million sampled pairs. Verified reproducible: re-running this test twice in a row (see `results/raw_runs/tokyo_scale_test_verified.log`) produces byte-identical stretch statistics after pinning the MC-Dropout seed (see `benchmarks/scale_test_tokyo.py`).
 
-**Efficiency collapsed:** only 0.09% of edges were pruned (755 of 831,958), versus 99.5%+ at the trained scale (4,500-43,000 nodes). The model still produces a mathematically valid spanner, but at this scale it provides essentially no practical sparsification benefit -- most edges are classified as "keep." Source: `results/raw_runs/tokyo_scale_test_verified.log`.
+**Efficiency collapsed:** only 0.09% of edges were pruned (755 of 831,958). The model still produces a mathematically valid spanner, but at this scale it provides essentially no practical sparsification benefit -- most edges are classified as "keep." Source: `results/raw_runs/tokyo_scale_test_verified.log`.
 
 This is reported as a known limitation, not hidden or worked around: the current edge-centrality feature and pruning threshold, calibrated on graphs two orders of magnitude smaller, do not transfer to Tokyo-scale networks without retraining or recalibration. Extending training data to include one or more 400,000+ node cities is the natural next step, not yet done.
 
 ## Leave-One-City-Out Cross-Validation (Zero-Shot Generalization)
+
+> **Provenance note.** `leave_one_city_out_results.csv` was last committed on 2026-08-20, before the parallel-edge and live-degree fixes described above. It contains a mean stretch below 1 (Eindhoven, 0.9947), which is impossible for a spanner subgraph, and a Manhattan maximum of 1.2861 that equals the pre-fix value. Re-run `benchmarks/leave_one_city_out.py` with the current pipeline before citing this table.
 
 To test whether the model generalizes to unseen road-network topology (rather than memorizing city-specific patterns), the model was fine-tuned on 3 cities and evaluated zero-shot on the 4th, rotated across all 4 cities:
 
@@ -126,9 +148,13 @@ Zero-shot performance on held-out cities is statistically indistinguishable from
 
 
 
-## Verified but Not Yet Used in the Paper
+## Ablation Study (Status)
 
-`benchmarks/ablation_and_baseline.py` produces a real, reproducible ablation study (5 variants, 128 independent runs across 4 cities), independently verified: no stretch-bound (t) violation in any of the 128 runs, and standard deviations look natural (not suspiciously zero). This data is not yet referenced in `paper/Main_Paper.tex` -- it is ready to use once a dedicated ablation section is added.
+`benchmarks/ablation_and_baseline.py` can run the ablation, but the committed result file
+(`results/raw_runs/ablation_baseline_20260704_201825.csv`) holds only 12 runs: one city (Rome), 3 seeds, 4 variants.
+It was produced before the later pipeline fixes, and in it sparsity-matched random pruning needed fewer repairs
+than the full model. An earlier version of this README described 128 runs across 4 cities; that is not supported
+by the committed data. The ablation will be re-run on all four cities with the current pipeline.
 
 ## Project Structure (current, cleaned up)
 

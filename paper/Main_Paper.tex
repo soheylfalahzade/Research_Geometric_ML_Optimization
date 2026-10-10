@@ -5,6 +5,7 @@
 \usepackage{booktabs}
 \usepackage{cite}
 \usepackage{subcaption}
+\newcommand{\tbd}[1]{\textbf{[TBD: #1]}}
 
 \title{Robust Neural-Algorithmic Framework for Directed $t$-Spanner Construction in Metropolitan Road Networks: Integrating Fuzzy-Inference Pruning, Epistemic Uncertainty, and Continual Learning}
 \author{Soheyl Falahzade}
@@ -13,7 +14,7 @@
 \maketitle
 
 \begin{abstract}
-Real-time routing in Intelligent Transportation Systems (ITS) is severely bottlenecked by the $O(m \cdot (n + m \log n))$ computational complexity associated with constructing exact geometric $t$-spanners on large-scale urban topologies. While machine learning has emerged as a promising paradigm to bypass these computational limits, standard neural predictors lack formal topological guarantees and rely on a single hard decision threshold that ignores the structural importance of individual edges. This paper introduces a robust hybrid neural-algorithmic framework that (i) shifts the heavy computational burden of spanner construction to an offline representation learning phase while enforcing strict structural constraints online via a cutoff-bounded directed repair procedure, and (ii) replaces the conventional hard-threshold pruning decision with a Mamdani-style fuzzy inference system that jointly reasons over the network's epistemic uncertainty (via Monte Carlo Dropout) and each edge's structural importance (via Edge Betweenness Centrality). Experimental evaluations across three heterogeneous urban fabrics (Eindhoven, Paris, and Rome), each validated over 15--18 independent stochastic seeds at matched sparsification levels, show that the proposed fuzzy pruning mechanism consistently requires fewer post-hoc geometric repairs than both a genetic-algorithm-tuned deterministic threshold with active self-correcting feedback (7.1--16.6\% fewer repairs) and a sparsity-matched random pruning baseline (0.4--10.2\% fewer repairs), across every tested city without exception. We further report, with full transparency, that a single-parameter threshold search does not by itself benefit from evolutionary optimization over random search under equal evaluation budget -- underscoring that the genuine value of evolutionary search in this framework lies in the higher-dimensional joint optimization of loss weights and calibration parameters, not in scalar threshold tuning. Under extreme network corruption, the uncertainty-aware framework maintains full Strong Connectivity (SCC) and a bounded directed stretch factor across all tested configurations.
+Real-time routing in Intelligent Transportation Systems (ITS) is bottlenecked by the $O(m \cdot (n + m \log n))$ cost of exact greedy $t$-spanner construction on directed metropolitan road networks. We study a hybrid neural-algorithmic pipeline in which an offline-trained, uncertainty-aware graph neural network (Monte Carlo Dropout) proposes edges to prune, a cutoff-bounded directed repair procedure restores any pruned edge whose own stretch bound would be violated, and a Mamdani-style fuzzy inference system and genetic-algorithm calibration serve as pruning-decision and parameter-tuning components. Our primary generalization protocol is leave-one-city-out (LOCO) evaluation, which holds out entire cities and thereby avoids the information leakage of edge-level cross-validation: \tbd{LOCO violation rate and maximum stretch, from a re-run with the final pipeline}. Construction is 6.74--42.51$\times$ faster than classic greedy construction on four networks (4,540--42,788 nodes), with the speedup growing with network size. In a controlled comparison at matched sparsification over 15--18 seeds per city, a genetic-algorithm-tuned threshold with active feedback required the fewest post-hoc repairs, fuzzy pruning the second fewest, and sparsity-matched random pruning the most, with all pairwise differences significant after Holm--Bonferroni correction; we therefore do not claim that fuzzy pruning outperforms calibrated thresholding. We also report that single-parameter threshold search gains nothing from evolutionary search over random search, and we document limitations openly: the repair guarantee is local to each pruned edge rather than global, so in one city 0.0110\% of $10^5$ sampled route pairs exceeded the target stretch (maximum 3.21), and at Tokyo scale (437,623 nodes) the zero-shot model remained valid but removed only 0.09\% of edges.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -32,15 +33,16 @@ Historically, constructing high-quality geometric spanners has relied on the cla
 
 To address this challenge, researchers have recently turned to Graph Neural Networks (GNNs) to predict edge importance and sparsify road networks in a data-driven manner. However, pure deep learning methods suffer from a critical flaw: they lack mathematical guarantees. A GNN may classify a critical highway bridge as ``prunable'' based on its local neighborhood features, resulting in infinite stretch (disconnection) or catastrophic detours. This risk is further amplified when the neural model is exposed to out-of-distribution (OOD) city topologies or noisy spatial data, and is further compounded by the common practice of collapsing the pruning decision to a single hard threshold that discards information about an edge's structural role.
 
-In this paper, we propose a robust, hybrid neural-algorithmic framework, named \textit{Geo-SmartSpanner}, which bridges the gap between statistical learning and hard geometric constraints. Our framework uses a scale-invariant GNN with Monte Carlo Dropout to propose candidate pruning lists with well-calibrated confidence scores, and replaces the conventional hard threshold with a fuzzy inference mechanism that reasons jointly over model confidence and edge centrality. To guarantee the $t$-spanner property, we implement a parallelized, directed, batch-sequential geometric repair module that intercepts pruning decisions only when a theoretical violation is detected.
+In this paper, we propose a robust, hybrid neural-algorithmic framework, named \textit{Geo-SmartSpanner}, which bridges the gap between statistical learning and hard geometric constraints. Our framework uses a scale-invariant GNN with Monte Carlo Dropout to propose candidate pruning lists with well-calibrated confidence scores, and replaces the conventional hard threshold with a fuzzy inference mechanism that reasons jointly over model confidence and edge centrality. To enforce the stretch bound on every pruned edge, we implement a parallelized, directed, batch-sequential geometric repair module that restores a pruned edge whenever its own bound would be violated (a local guarantee; see Section~\ref{sec:limits}).
 
 The key contributions of this paper are summarized as follows:
 \begin{itemize}
-    \item We present a decoupled neural-algorithmic framework that shifts the complexity of directed $t$-spanner construction from $O(m \cdot (n + m \log n))$ offline to a fast, near-linear online inference and verification pipeline, empirically validated to yield a 5.97--26.19x wall-clock speedup over classic greedy construction across four metropolitan networks.
-    \item We introduce an active geometric feedback loop that utilizes the failures of the neural network (repaired edges) to fine-tune the GNN parameters on a per-city basis, creating a self-correcting geometric model.
-    \item We propose a directed Bounded-Stretch GLV-Repair algorithm, accelerated via cutoff-bounded Dijkstra search, that maintains 100\% Strongly Connected Components (SCC) and strictly bounds the directed stretch factor below 1.5 under extreme spatial noise.
-    \item We integrate a meta-evolutionary optimization layer based on Genetic Algorithms (GA) for the joint, multi-parameter calibration of loss weights and uncertainty coefficients, while transparently reporting that scalar threshold search does not itself benefit from evolutionary search over random search under equal evaluation budget.
-    \item We propose a Mamdani-style fuzzy inference mechanism that replaces the hard pruning threshold, jointly reasoning over epistemic uncertainty and structural centrality, and demonstrate -- across 15--18 independent seeds per city -- that it consistently outperforms both the GA-tuned threshold and a sparsity-matched random baseline in every tested city.
+    \item We present a decoupled neural-algorithmic framework that shifts the cost of directed $t$-spanner construction to an offline representation-learning phase, with a fast online inference and verification pipeline that is 6.74--42.51$\times$ faster in wall-clock time than classic greedy construction on four metropolitan networks (Table~\ref{tab:results}).
+    \item We introduce an active geometric feedback loop that uses the failures of the neural network (repaired edges) to fine-tune the GNN on a per-city basis.
+    \item We propose a directed, cutoff-bounded GLV-Repair procedure that restores every pruned edge whose own stretch bound would be violated and preserved strong connectivity in all tested runs. The guarantee is local to each pruned edge, not global; we quantify the resulting empirical stretch over arbitrary route pairs by Monte Carlo sampling (Section~\ref{sec:limits}).
+    \item We integrate a genetic-algorithm layer for joint calibration of loss weights and uncertainty coefficients, and report that scalar threshold search does not benefit from evolutionary search over random search under equal evaluation budget.
+    \item We propose a Mamdani-style fuzzy inference mechanism for the pruning decision and evaluate it against a GA-tuned threshold with feedback and a sparsity-matched random baseline. The fuzzy mechanism beats random pruning but is itself beaten by the calibrated threshold, a result we report as found.
+    \item We adopt leave-one-city-out evaluation as the primary generalization protocol, because edge-level k-fold cross-validation on graphs leaks information between neighboring edges.
 \end{itemize}
 
 \section{Related Work}
@@ -76,11 +78,11 @@ The calibrated pruning-relevant score is then:
 Section~\ref{sec:fuzzy} describes how $\hat{y}_i$ is combined with structural centrality via fuzzy inference to reach the final pruning decision, replacing a single hard threshold on $\hat{y}_i$ alone.
 
 \subsection{Topological Safeguards \& Directed GLV-Repair}
-To prevent catastrophic structural disconnections, we first apply a hard topological lock. Let $E_{lock}$ be the set of edges incident to low-degree boundary vertices:
+To prevent catastrophic structural disconnections, we first apply a hard topological lock. Let $\deg^{\mathrm{live}}_{in}(v)$ and $\deg^{\mathrm{live}}_{out}(u)$ denote the current in- and out-degrees in the partially pruned graph, initialized to the original degrees and decremented whenever an edge is pruned. When edge $(u,v)$ is considered, it is protected from pruning if
 \begin{equation}
-    E_{lock} = \{ (u, v) \in E \mid deg_{in}(v) \le 1 \lor deg_{out}(u) \le 1 \}
+    \deg^{\mathrm{live}}_{in}(v) \le d_{\min} \;\lor\; \deg^{\mathrm{live}}_{out}(u) \le d_{\min}, \quad d_{\min} = 2.
 \end{equation}
-These edges are strictly protected and never pruned, preserving the basic connectivity of peripheral neighborhoods.
+Using live rather than original degrees matters: with original degrees, several edges around one node can each pass the check independently and jointly reduce the node to a single remaining edge.
 
 The remaining candidate edges in $E_{prune} \setminus E_{lock}$ are processed using a \textit{Batch-Sequential GLV-Repair} algorithm. In undirected graphs, pruning decisions can be made independently. However, in directed graphs, pruning can cause asymmetric routing bottlenecks, a phenomenon we refer to as the \textit{Blind Batch-Pruning Paradox}.
 
@@ -191,43 +193,74 @@ Rome      & 42,788 & 88,618 & \textbf{42.51x} \\
 As shown in Table \ref{tab:results}, the proposed framework consistently outperforms the classic greedy baseline in wall-clock construction time across all four tested networks, with the speedup factor scaling monotonically with network size. We note that an early, naive implementation of the directed repair verification step -- using unbounded shortest-path queries rather than the cutoff-bounded search of Section~\ref{sec:cutoff} -- reduced the achievable speedup to as low as 0.86--1.21x by consuming up to 97.7\% of total pipeline runtime in repair verification alone. This finding, reported here for transparency, underscores that the asymptotic advantage of neural-algorithmic hybrid frameworks is only realized when every stage of the pipeline, not merely the learned component, respects the same complexity bounds.
 
 \subsection{Empirical Stretch \& Asymmetry Verification}
-Figure \ref{fig:combined} (Left) illustrates the Empirical Cumulative Distribution Function (CDF) of the directed stretch factor across test cities. Figure \ref{fig:combined} (Right) provides the visual proof of directed traffic asymmetry, confirming that the model respects the asymmetric routing characteristics of urban road networks.
-\textit{Note: the three figures in Fig.~\ref{fig:combined} were generated prior to the introduction of the Edge Betweenness Centrality feature and the Fuzzy-Inference pruning mechanism, and are scheduled for regeneration with the current model prior to journal submission.}
+\label{sec:stretch}
+Stretch was measured on $10^5$ uniformly sampled directed route pairs per city, using directed shortest paths on both the original and the final (repaired) graph, with parallel edges collapsed to their minimum weight. Table~\ref{tab:mc} reports the result. Figure~\ref{fig:combined} (Left) shows the empirical CDF of directed stretch and Figure~\ref{fig:combined} (Right) shows the directed asymmetry of travel distances.
+
+\begin{table}[h]
+\centering
+\caption{Directed stretch over $10^5$ sampled route pairs per city ($t = 1.5$)}
+\begin{tabular}{lccccc}
+\toprule
+City & Mean & Median & P99 & Max & Viol.\ ($>t$) \\
+\midrule
+Eindhoven & 1.0036 & 1.0000 & 1.0697 & 3.2139 & 0.0110\% \\
+Manhattan & 1.0001 & 1.0000 & 1.0000 & 1.1363 & 0.0000\% \\
+Paris     & 1.0013 & 1.0000 & 1.0291 & 1.4389 & 0.0000\% \\
+Rome      & 1.0015 & 1.0000 & 1.0273 & 1.2882 & 0.0000\% \\
+\bottomrule
+\end{tabular}
+\label{tab:mc}
+\end{table}
+
+\subsection{Generalization: Leave-One-City-Out Evaluation}
+\label{sec:loco}
+The primary generalization test fine-tunes the model on three cities and evaluates it zero-shot on the fourth, rotating over all four cities (Eindhoven, Manhattan, Paris, Rome). Because entire cities are held out, no edge or node of the test network is seen during training, which removes the leakage inherent in edge-level cross-validation. The same stretch protocol as in Table~\ref{tab:mc} is applied.
+
+\tbd{LOCO table: re-run benchmarks/leave\_one\_city\_out.py with the final pipeline. The committed results predate the parallel-edge and live-degree fixes and include a mean stretch below 1, which is impossible for a spanner subgraph.}
+
+As a supplementary diagnostic, stratified five-fold edge-level cross-validation of the edge classifier gives a mean AUC of $0.716 \pm 0.010$. This figure is optimistic, since neighboring edges share nodes and spatial autocorrelation can leak between folds, and it is not used to support any generalization claim.
 
 \subsection{Continual Learning Stability}
 The training trajectory in Figure \ref{fig:combined} (Center) demonstrates the performance of our Experience Replay Buffer during sequential fine-tuning across cities.
 
 \subsection{Stress Testing under Spatial Noise}
-To evaluate the anti-fragility of our framework, we subjected the input road networks to 20\% spatial noise (corrupted coordinate data and edge weights). Under these OOD conditions, standard deterministic GNNs fail catastrophically, yielding a maximum stretch factor well above the target limit. Our uncertainty-aware model (using MC-Dropout) correctly identifies these high-uncertainty regions, triggers the GLV-repair layer, and keeps the maximum stretch bounded.
+% The original paragraph is preserved below. Its numbers are not backed by raw logs in
+% results/raw_runs, so it is withheld until the stress-test run is committed.
+% To evaluate the anti-fragility of our framework, we subjected the input road networks to 20\% spatial noise (corrupted coordinate data and edge weights). Under these OOD conditions, standard deterministic GNNs fail catastrophically, yielding a maximum stretch factor well above the target limit. Our uncertainty-aware model (using MC-Dropout) correctly identifies these high-uncertainty regions, triggers the GLV-repair layer, and keeps the maximum stretch bounded.
+\tbd{spatial-noise stress test: add raw logs to results/raw\_runs and report measured maximum stretch with and without the repair layer}
 
-\subsection{Validation of the Fuzzy Pruning Mechanism}
+\subsection{Comparison of Pruning-Decision Mechanisms}
 \label{sec:fuzzy-results}
 
-We compare three pruning-decision mechanisms at matched sparsification levels (identical number of pruned edges per city, ensuring the comparison isolates decision quality rather than aggressiveness):
+We compare three pruning-decision mechanisms at matched sparsification (identical number of pruned edges per city and seed, so that the comparison isolates decision quality rather than aggressiveness):
 \begin{itemize}
-    \item \textbf{C -- GA-Tuned Threshold + Active Feedback}: A per-city genetic-algorithm-optimized scalar threshold, followed by one round of self-correcting fine-tuning on the repaired-edge feedback signal (Section~\ref{sec:feedback}).
-    \item \textbf{D -- Sparsity-Matched Random Pruning}: A baseline that prunes an identical number of non-bottleneck edges uniformly at random.
-    \item \textbf{E -- Fuzzy Pruning (proposed)}: The mechanism described in Section~\ref{sec:fuzzy}.
+    \item \textbf{C -- GA-Tuned Threshold + Active Feedback}: a per-city genetic-algorithm-optimized scalar threshold, followed by one round of self-correcting fine-tuning on the repaired-edge feedback signal (Section~\ref{sec:feedback}).
+    \item \textbf{D -- Sparsity-Matched Random Pruning}: prunes an identical number of non-bottleneck edges uniformly at random, isolating whether the pruning decision carries any signal beyond the sparsity level.
+    \item \textbf{E -- Fuzzy Pruning}: the mechanism of Section~\ref{sec:fuzzy}.
 \end{itemize}
 
-Table~\ref{tab:fuzzy-results} reports the mean number of post-hoc geometric repairs required by each mechanism, averaged over 15--18 independent stochastic seeds per city (identical sparsification confirmed to within $10^{-3}$\% across all three variants per seed).
+Table~\ref{tab:fuzzy-results} reports the number of post-hoc geometric repairs (lower is better), averaged over 15--18 seeds per city. Sparsification was identical across the three variants for every seed.
 
 \begin{table}[h]
 \centering
-\caption{Repairs Required by Pruning Mechanism (mean $\pm$ std, matched sparsification)}
+\caption{Repairs required by pruning mechanism (mean $\pm$ std, matched sparsification, lower is better)}
 \begin{tabular}{lcccc}
 \toprule
-City & $n$ & C (GA+Feedback) & D (Random) & \textbf{E (Fuzzy)} \\
+City & $n$ & \textbf{C (GA+Feedback)} & D (Random) & E (Fuzzy) \\
 \midrule
-Eindhoven & 15 & 2624.6 $\pm$ 11.4 & 2437.1 $\pm$ 16.5 & \textbf{2189.2 $\pm$ 24.2} \\
-Paris     & 15 & 4748.3 $\pm$ 14.5 & 4653.7 $\pm$ 15.0 & \textbf{4636.3 $\pm$ 14.6} \\
-Rome      & 18 & 14965.3 $\pm$ 29.8 & 14425.3 $\pm$ 54.3 & \textbf{13900.1 $\pm$ 41.4} \\
+Eindhoven & 15 & \textbf{1175.9 $\pm$ 11.2} & 1515.3 $\pm$ 14.1 & 1320.5 $\pm$ 10.7 \\
+Paris     & 15 & \textbf{2680.3 $\pm$ 7.6}  & 2774.0 $\pm$ 12.1 & 2722.5 $\pm$ 10.3 \\
+Rome      & 18 & \textbf{8416.3 $\pm$ 26.4} & 9195.9 $\pm$ 29.1 & 8779.8 $\pm$ 46.5 \\
 \bottomrule
 \end{tabular}
 \label{tab:fuzzy-results}
 \end{table}
 
-The fuzzy pruning mechanism (E) requires fewer repairs than both competitors in every tested city without exception: 7.1--16.6\% fewer than the GA-tuned threshold with feedback, and 0.4--10.2\% fewer than sparsity-matched random pruning.
+The ordering C $<$ E $<$ D holds in every city and in every seed. The GA-tuned threshold with feedback requires 1.6--11.0\% fewer repairs than fuzzy pruning and 3.4--22.4\% fewer than random pruning; fuzzy pruning requires 1.9--12.9\% fewer repairs than random pruning. All nine paired comparisons (three city pairs of mechanisms, Wilcoxon signed-rank on seed-matched runs) remain significant after Holm--Bonferroni correction (adjusted $p < 0.004$). Fuzzy pruning therefore carries real signal beyond the sparsity level, but it does not outperform calibrated thresholding with feedback, and we do not claim that it does.
+
+\subsection{Ablation Study}
+\label{sec:ablation}
+\tbd{ablation table over all four cities: re-run benchmarks/ablation\_and\_baseline.py with the final pipeline. The committed file contains 12 runs on a single city (Rome, 3 seeds) from before the final fixes, in which sparsity-matched random pruning needed fewer repairs than the full model, so it is not reported here.}
 
 \subsubsection{On the Choice of Evolutionary Search}
 \label{sec:ga-vs-rs}
@@ -253,18 +286,28 @@ We additionally tested whether genetic-algorithm-based threshold search offers a
         \caption{Asymmetry Distribution.}
         \label{fig:asymmetry}
     \end{subfigure}
-    \caption{Empirical verification of the proposed framework under real-world one-way routing constraints. (Pending regeneration with the current centrality-aware, fuzzy-pruning model -- see note in Section~\ref{sec:fuzzy-results}.)}
+    \caption{Empirical verification of the proposed framework under real-world one-way routing constraints.}
     \label{fig:combined}
 \end{figure*}
 
 \section{Discussion}
 \label{sec:discussion}
-A potential critique of our method is that the achieved sparsification rate (7--27\% depending on city and target configuration) is more modest than what abstract, complete geometric graphs can achieve. However, real road networks are inherently sparse, planar-like topologies with an average node degree of $\approx 2.3$; pruning even a modest fraction of roads without violating directed $t$-stretch limits is historically difficult, and our framework achieves this while strictly guaranteeing 100\% Strong Connectivity across all tested cities and seeds.
+Sparsification is modest by design: real road networks are sparse, planar-like topologies with an average node degree of about 2.3, so removing even a small fraction of roads without violating directed $t$-stretch limits is difficult. The reported sparsification is 0.5--4.2\% in the speedup benchmark (Table~\ref{tab:results}) and 8.6--16.1\% in the matched-sparsification comparison (Table~\ref{tab:fuzzy-results}). Strong connectivity was preserved in every tested run.
 
-We also note a consistent cross-city pattern in Section~\ref{sec:fuzzy-results}: the improvement margin of fuzzy pruning over both baselines was largest in Eindhoven and smallest in Paris. Since the same ordering appeared independently for the GA+feedback mechanism relative to random pruning, we hypothesize that Paris's road network topology is intrinsically less amenable to structural pruning heuristics in general, an observation that merits further investigation across a larger and more diverse set of cities.
+The margins between the three pruning mechanisms follow a consistent cross-city pattern: they are largest in Eindhoven and smallest in Paris, for both C versus E and E versus D, and for C versus D. We hypothesize that Paris's topology is intrinsically less amenable to structural pruning heuristics, an observation that merits investigation on a larger and more diverse set of cities.
+
+\subsection{Limitations}
+\label{sec:limits}
+\begin{itemize}
+    \item \textbf{The repair guarantee is local.} The repair step verifies, for each removed edge, that its own endpoints stay within $t$ times that edge's original length. It does not check arbitrary source--destination pairs, and independently repaired regions can compound into a longer detour for a few unrelated pairs. Accordingly, in Eindhoven 0.0110\% of $10^5$ sampled pairs exceeded $t = 1.5$ (maximum 3.21, Table~\ref{tab:mc}). Classic greedy construction, in contrast, bounds every pair provably. Whether a global guarantee is required, and which repair strategy would provide it, is open.
+    \item \textbf{Scale.} Zero-shot on Tokyo (437,623 nodes, 831,958 edges) the output was valid (mean stretch 1.0010, maximum 1.3493, no violation over $2.19 \times 10^8$ sampled pairs), but only 755 edges (0.09\%) were removed after repair, so the sparsification benefit is negligible at this scale. Recalibration or retraining on very large networks has not been done.
+    \item \textbf{Calibrated thresholding beats fuzzy pruning} on repair count in all three cities (Section~\ref{sec:fuzzy-results}); any advantage of the fuzzy mechanism, such as interpretability, is not supported by this evidence.
+    \item \textbf{Cross-validation.} Edge-level k-fold cross-validation is subject to leakage between neighboring edges (Section~\ref{sec:loco}), so generalization claims rest on leave-one-city-out evaluation only.
+    \item \textbf{Cities and seeds.} Four cities support a directional generalization claim, not a definitive one.
+\end{itemize}
 
 \section{Conclusion}
-In this paper, we proposed a robust, hybrid neural-algorithmic framework for constructing directed $t$-spanners on metropolitan-scale road networks. By combining a Graph Neural Network with Monte Carlo Dropout, a cutoff-bounded parallelized directed repair module, and a Mamdani-style fuzzy inference mechanism for the pruning decision, we achieve consistent wall-clock speedups over classic greedy construction (6.74--42.51x across four cities) while maintaining 100\% Strong Connectivity and a bounded directed stretch factor under extreme spatial noise. Through statistically validated experiments (15--18 seeds per city), we further show that the proposed fuzzy pruning mechanism requires fewer post-hoc geometric repairs than both a genetic-algorithm-tuned threshold with active feedback and a sparsity-matched random baseline, in every tested city without exception. We report transparently that evolutionary search offers no measurable advantage over random search for single-parameter threshold tuning, directing future readers toward the fuzzy inference mechanism -- rather than scalar metaheuristic search -- as the primary contribution of this work for the pruning-decision task.
+We proposed a hybrid neural-algorithmic framework for constructing directed $t$-spanners on metropolitan road networks, combining a Monte Carlo Dropout graph neural network, a cutoff-bounded directed repair module, genetic-algorithm calibration, and a Mamdani-style fuzzy pruning decision. It builds the spanner 6.74--42.51$\times$ faster than classic greedy construction on four networks and preserved strong connectivity in all tested runs. In a controlled comparison at matched sparsification, a GA-tuned threshold with feedback required the fewest repairs, fuzzy pruning was second and beat random pruning, so the fuzzy mechanism is not supported as the best pruning decision. The repair guarantee is local rather than global, which produced a small but nonzero violation rate in one city, and the approach does not yet deliver useful sparsification at Tokyo scale. Leave-one-city-out evaluation is the primary generalization protocol; its final numbers are pending a re-run with the current pipeline.
 
 \begin{thebibliography}{25}
 \bibitem{peleg}
