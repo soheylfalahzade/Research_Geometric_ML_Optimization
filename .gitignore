@@ -14,3 +14,4 @@ cache/
 *.fdb_latexmk
 *.synctex.gz
 *.toc
+paper/

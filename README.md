@@ -17,7 +17,7 @@ Real-time routing in Intelligent Transportation Systems (ITS) is bottlenecked by
 
 The result is a substantial wall-clock speedup over classic Greedy Spanner while maintaining 100% Strongly Connected Component (SCC) integrity and a bounded directed stretch factor, even under heavy spatial noise.
 
-Transparently reported negative result (also in the paper): evolutionary search offers no measurable advantage over random search for tuning a single threshold -- the genuine value of the genetic algorithm in this work lies in jointly tuning multiple parameters, not single-parameter search.
+Transparently reported negative result: evolutionary search offers no measurable advantage over random search for tuning a single threshold -- the genuine value of the genetic algorithm in this work lies in jointly tuning multiple parameters, not single-parameter search.
 
 ## Research Program
 
@@ -76,7 +76,7 @@ A second, independent bug was then found and fixed: `nx.adjacency_matrix()` sums
 
 Fixing both of the above surfaced a third issue: the bottleneck safeguard that is supposed to prevent a node from being pruned down to near-isolation checked node degree against the **static original graph**, which never updates during the pruning decision loop. A node with 3 original outgoing edges could have all 3 independently pass the "don't isolate" check (since each check saw the same unchanged degree=3) and still be pruned down to a single remaining edge. Fixed by tracking each node's *live*, decreasing degree during the pruning loop and refusing to drop any node's out/in-degree below 2 (see `MIN_SAFE_DEGREE` in `spanner_pipeline.py` and `monte_carlo_validator.py`). This fix measurably improved several cities (e.g. Manhattan's max stretch dropped from 1.2861 to 1.1363).
 
-**A remaining, more fundamental limitation (not a bug -- an algorithmic property, documented rather than silently patched):** after both fixes above, one city (Eindhoven) still shows a small nonzero violation rate. Root cause, confirmed by direct inspection: `glv_repair_directed()`'s repair check (`_check_one_directed_edge`) only verifies that the two endpoints of a *specific removed edge* remain within `t_limit x (that edge's own original length)` of each other in the repaired graph. It does not check the stretch of arbitrary, unrelated (source, destination) pairs that happen to route through several independently-repaired regions. Each local repair can individually pass its own check while the *compounding* effect of several nearby prunings still produces a longer-than-guaranteed detour for a small number of unrelated OD pairs. This is a **local per-edge guarantee, not a global per-pair proof** -- a known distinction in the spanner literature between heuristic/ML-based construction (fast, empirically-validated via sampling) and classic greedy spanner construction (slower, provably worst-case bounded for every pair). The empirical violation rate below is reported honestly rather than hidden or rounded away, and is flagged for discussion with the thesis advisor as a design question (whether a global guarantee is required, and if so, what repair strategy would provide it) rather than something patched ad hoc.
+**A remaining, more fundamental limitation (not a bug -- an algorithmic property, documented rather than silently patched):** after both fixes above, one city (Eindhoven) still shows a small nonzero violation rate. Root cause, confirmed by direct inspection: `glv_repair_directed()`'s repair check (`_check_one_directed_edge`) only verifies that the two endpoints of a *specific removed edge* remain within `t_limit x (that edge's own original length)` of each other in the repaired graph. It does not check the stretch of arbitrary, unrelated (source, destination) pairs that happen to route through several independently-repaired regions. Each local repair can individually pass its own check while the *compounding* effect of several nearby prunings still produces a longer-than-guaranteed detour for a small number of unrelated OD pairs. This is a **local per-edge guarantee, not a global per-pair proof** -- a known distinction in the spanner literature between heuristic/ML-based construction (fast, empirically-validated via sampling) and classic greedy spanner construction (slower, provably worst-case bounded for every pair). The empirical violation rate below is reported honestly rather than hidden or rounded away, and is left as an open design question (whether a global guarantee is required, and if so, what repair strategy would provide it) rather than something patched ad hoc.
 
 The figures below were regenerated with the current model (GNN + edge-centrality feature + fuzzy pruning) using the corrected, independently-verified pipeline (directed distances, parallel-edge-safe adjacency, and live-degree bottleneck protection) across all 4 cities (100,000 Monte Carlo route pairs per city):
 
@@ -167,10 +167,6 @@ Research_Geometric_ML_Optimization/
 |   `-- models/        # Trained model weights (excluded from GitHub's language stats)
 |-- logs/              # Dataset-build console logs (data_generator.py runs)
 |-- docs/              # Interactive HTML maps (excluded from GitHub's language stats)
-|-- paper/
-|   |-- Main_Paper.tex # Current manuscript (LaTeX source)
-|   |-- Main_Paper.pdf # Builds directly from the paper source
-|   `-- updates/       # Section drafts staged before merging into Main_Paper.tex
 |-- data_generator.py  # Builds datasets from OSMnx, computes exact Greedy ground truth
 |-- requirements.txt
 |-- LICENSE

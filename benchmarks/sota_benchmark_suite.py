@@ -2,7 +2,7 @@
 ================================================================================
 SCIENTIFIC BENCHMARKER — SOTA Comparison Suite
 ================================================================================
-Addressing Reviewer Critical Gaps:
+Baseline-comparison gaps addressed:
 1. Isolated Inference Time: Comparing Online GNN vs. Iterative Greedy.
 2. Failure Scenario: Proving MC-Dropout under Graph Corruption (Gap 9).
 3. Scalability Analysis: Showing Speedup on Metropolitan Scales (Log Scale).
