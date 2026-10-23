@@ -2,7 +2,7 @@
 ================================================================================
 GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
 ================================================================================
-Status: Under active development; not yet submitted
+Status: under active development
 Author: Soheyl Falahzade
 
 نسخه‌ی به‌روزشده: Edge Betweenness Centrality اکنون به‌عنوان یک ویژگی
@@ -569,7 +569,7 @@ def main():
     print(df_show.to_string(index=False))
     print("=" * 100)
 
-    print("\nGenerating final publication-quality plots...")
+    print("\nGenerating final plots...")
 
     plt.figure(figsize=(10, 6))
     for res in final_results:
