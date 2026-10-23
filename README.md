@@ -131,18 +131,16 @@ This is reported as a known limitation, not hidden or worked around: the current
 
 ## Leave-One-City-Out Cross-Validation (Zero-Shot Generalization)
 
-> **Provenance note.** `leave_one_city_out_results.csv` was last committed on 2026-08-20, before the parallel-edge and live-degree fixes described above. It contains a mean stretch below 1 (Eindhoven, 0.9947), which is impossible for a spanner subgraph, and a Manhattan maximum of 1.2861 that equals the pre-fix value. Re-run `benchmarks/leave_one_city_out.py` with the current pipeline before citing this table.
-
 To test whether the model generalizes to unseen road-network topology (rather than memorizing city-specific patterns), the model was fine-tuned on 3 cities and evaluated zero-shot on the 4th, rotated across all 4 cities:
 
 | Held-out City | Trained on | Mean Stretch | Median Stretch | 99th Percentile | Max Stretch | Violation Rate (>1.5) |
 |---|---|---|---|---|---|---|
-| Eindhoven | Manhattan, Paris, Rome | 0.9947 | 1.0000 | 1.0361 | 1.3837 | 0.0000% |
-| Manhattan | Eindhoven, Paris, Rome | 1.0020 | 1.0000 | 1.0562 | 1.2861 | 0.0000% |
-| Paris | Eindhoven, Manhattan, Rome | 1.0001 | 1.0000 | 1.0289 | 1.2100 | 0.0000% |
-| Rome | Eindhoven, Manhattan, Paris | 1.0003 | 1.0000 | 1.0231 | 1.1401 | 0.0000% |
+| Eindhoven | Manhattan, Paris, Rome | 1.0053 | 1.0007 | 1.0627 | 1.6856 | 0.0040% |
+| Manhattan | Eindhoven, Paris, Rome | 1.0019 | 1.0000 | 1.0487 | 1.2726 | 0.0000% |
+| Paris | Eindhoven, Manhattan, Rome | 1.0022 | 1.0000 | 1.0296 | 1.2162 | 0.0000% |
+| Rome | Eindhoven, Manhattan, Paris | 1.0034 | 1.0007 | 1.0277 | 1.2703 | 0.0000% |
 
-Zero-shot performance on held-out cities is statistically indistinguishable from performance on cities seen during fine-tuning -- the model generalizes to unseen topology rather than memorizing per-city patterns.
+Re-run with the final pipeline (parallel-edge and live-degree fixes); the base model was retrained for this run and is not committed. Mean stretch is above 1 in every held-out city, as required of a spanner subgraph. 3 of 4 cities show no violation of the bound; Eindhoven has 0.0040% of sampled pairs above 1.5 (maximum stretch 1.6856). Each row is a single fine-tuning run, and no statistical comparison with cities seen during fine-tuning was made, so no claim of equivalence is made.
 
 ![Leave-one-city-out CDF](results/figures/leave_one_city_out_cdf.png)
 
