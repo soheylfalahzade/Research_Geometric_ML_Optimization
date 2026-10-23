@@ -76,6 +76,12 @@ def main():
     lo, hi = b.speedup_mean.min(), b.speedup_mean.max()
     check("speedup range 6.74--42.51 quoted in text", f"{lo:.2f}--{hi:.2f}" in tex, f"(data {lo:.2f}--{hi:.2f})")
 
+    loco = pd.read_csv(RAW / "leave_one_city_out_results.csv", dtype=str)
+    for _, r in loco.iterrows():
+        for col in ("Mean Stretch", "Median Stretch", "99th Percentile", "Max Stretch"):
+            check(f"LOCO {r['Held-out City']} {col} in tex", r[col] in tex)
+        check(f"LOCO {r['Held-out City']} violation rate in tex", r["Violation Rate (>1.5)"].replace("%", "\\%") in tex)
+    check("no stale LOCO placeholder", "LOCO table" not in tex and "LOCO violation rate and maximum" not in tex)
     check("no stale 5.97--26.19 speedup range left", "5.97" not in tex and "26.19" not in tex)
     check("no stale claim 'without exception' for fuzzy", "without exception" not in tex)
     print()
