@@ -1,16 +1,16 @@
 """
 analyze_clean_results.py
 ===========================
-قبل از هر تحلیلی، این اسکریپت خودش تشخیص می‌دهد کدام سطرهای CSV از
-نسخه‌ی صحیح (v3، با تطبیق دقیق D) آمده‌اند و کدام‌ها از نسخه‌های قدیمی
-باگ‌دار — و فقط داده‌ی معتبر را نگه می‌دارد.
+Before any analysis, this script detects by itself which CSV rows come from
+the correct version (v3, with exact matching of D) and which come from old
+buggy versions, and keeps only the valid data.
 
-معیار اعتبار: برای هر (شهر, seed)، sparsification_pct در ردیف‌های
-C_GA_Threshold_plus_Feedback و D_Random_Pruning(matched_to_C) باید
-دقیقاً (با تلورانس ۰.۰۰۱٪) برابر باشند. اگر نبودند، آن seed از آن فایل
-کنار گذاشته می‌شود.
+Validity criterion: for each (city, seed), sparsification_pct in the rows
+C_GA_Threshold_plus_Feedback and D_Random_Pruning(matched_to_C) must be
+exactly equal (within a tolerance of 0.001%). If they are not, that seed is
+discarded from that file.
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/analyze_clean_results.py
 """
 
@@ -22,7 +22,7 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 RAW_RUNS_DIR = PROJECT_ROOT / "results" / "raw_runs"
 
-TOLERANCE = 0.001  # درصد اختلاف قابل‌قبول برای تشخیص "برابر"
+TOLERANCE = 0.001  # acceptable difference in percent for deciding "equal"
 
 
 def load_all_runs():
@@ -37,8 +37,8 @@ def load_all_runs():
 
 def filter_valid_rows(df):
     """
-    فقط seed هایی را نگه می‌دارد که در همان فایل، C و D دقیقاً یک
-    sparsification داشته باشند (یعنی از نسخه‌ی v3 صحیح آمده‌اند).
+    keeps only the seeds whose C and D rows in the same file have exactly one
+    sparsification value (i.e. they come from the correct v3 version).
     """
     valid_keys = set()
     for (city, source, seed), group in df.groupby(["city", "_source_file", "seed"]):
@@ -56,17 +56,17 @@ def filter_valid_rows(df):
 
 def main():
     df_all = load_all_runs()
-    print(f"کل ردیف‌های خام (همه‌ی فایل‌ها): {len(df_all)}")
+    print(f"total raw rows (all files): {len(df_all)}")
 
     df_valid = filter_valid_rows(df_all)
-    print(f"ردیف‌های معتبر (بعد از فیلتر C/D matched): {len(df_valid)}")
+    print(f"valid rows (after the filter C/D matched): {len(df_valid)}")
 
     n_discarded_seeds = len(df_all.groupby(["city", "_source_file", "seed"])) - \
         len(df_valid.groupby(["city", "_source_file", "seed"]))
-    print(f"تعداد (شهر, فایل, seed) کنار گذاشته‌شده به‌خاطر داده‌ی کثیف: {n_discarded_seeds}\n")
+    print(f"number of (city, file, seed) combinations discarded because of dirty data: {n_discarded_seeds}\n")
 
     print("=" * 90)
-    print("خلاصه‌ی نهایی (فقط داده‌ی معتبر) — این تنها جدولی است که باید در مقاله استفاده شود:")
+    print("final summary (valid data only) — this is the only table that should be used for reporting:")
     print("=" * 90)
     summary = df_valid.groupby(["city", "variant"])[["sparsification_pct", "max_stretch", "n_repairs"]].agg(
         ["mean", "std", "count"]
@@ -74,7 +74,7 @@ def main():
     print(summary.to_string())
 
     print("\n" + "=" * 90)
-    print("مقایسه‌ی مستقیم C در برابر D (درصد بهبود نسبت به تصادف):")
+    print("direct comparison of C versus D (percent improvement over random):")
     print("=" * 90)
     for city in df_valid["city"].unique():
         sub = df_valid[df_valid["city"] == city]
@@ -85,12 +85,12 @@ def main():
             improvement = (d_mean - c_mean) / d_mean * 100
             n = len(c_repairs)
             print(f"  {city}: C={c_mean:.1f} (n={n}) vs D={d_mean:.1f} (n={len(d_repairs)}) "
-                  f"-> بهبود C نسبت به D: {improvement:+.1f}%")
+                  f"-> improvement of C over D: {improvement:+.1f}%")
 
     out_path = RAW_RUNS_DIR / "CLEAN_combined_results.csv"
     df_valid.to_csv(out_path, index=False)
-    print(f"\n✅ داده‌ی تمیز در این فایل ذخیره شد: {out_path}")
-    print("از این فایل (نه فایل‌های خام تک‌به‌تک) برای هر جدول مقاله استفاده کن.")
+    print(f"\n✅ clean data saved in this file: {out_path}")
+    print("use this file (not the individual raw files) for every reported table.")
 
 
 if __name__ == "__main__":

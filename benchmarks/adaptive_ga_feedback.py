@@ -1,19 +1,19 @@
 """
-adaptive_ga_feedback.py (نسخه‌ی ۲ — با قید سخت + اثبات برتری GA)
+adaptive_ga_feedback.py (version 2 — with a hard constraint + evidence of the advantage of GA)
 ====================================================================
-اصلاحات نسبت به نسخه‌ی قبلی:
+Changes relative to the previous version:
 
-۱) قید سخت روی sparsification: راه‌حل‌هایی که بیش از ±3 درصد از هدف
-   فاصله دارن، به‌شدت جریمه می‌شن (غیرقابل‌قبول اعلام می‌شن)، نه فقط
-   جریمه‌ی ملایم. این از "راه‌حل قهرمان دروغین" (هرس نکردن) جلوگیری
-   می‌کند.
+1) Hard constraint on sparsification: solutions that deviate from the target by more than ±3 percent
+   are penalized heavily (declared infeasible), not just
+   mildly penalized. This prevents the "fake champion" solution (no pruning at all)
+   from being selected.
 
-۲) اضافه‌شدن RANDOM SEARCH با همان تعداد ارزیابی (budget) که GA دارد.
-   اگر GA بتواند با همان تعداد فراخوانی تابع فیتنس، به نتیجه‌ی بهتری
-   برسد، این مستقیماً ثابت می‌کند که ساختار تکاملی (انتخاب + تولید نسل)
-   واقعاً کمک می‌کند — نه اینکه GA فقط "شانسی" بهتر بوده.
+2) Added RANDOM SEARCH with the same number of evaluations (budget) as the GA.
+   If the GA reaches a better result with the same number of fitness-function calls,
+   this directly shows that the evolutionary structure (selection + generations)
+   really helps, rather than the GA being better only "by chance".
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/adaptive_ga_feedback.py --city Paris --seeds 3
     python benchmarks/adaptive_ga_feedback.py --city Rome --seeds 2
 """
@@ -45,7 +45,7 @@ RAW_RUNS_DIR.mkdir(parents=True, exist_ok=True)
 WEIGHTS_PATH = PROJECT_ROOT / "results" / "models" / "best_base_model.pt"
 OUT_CSV = RAW_RUNS_DIR / f"adaptive_ga_feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
-SPARSIFICATION_TOLERANCE_PCT = 3.0  # حداکثر فاصله‌ی قابل‌قبول از هدف
+SPARSIFICATION_TOLERANCE_PCT = 3.0  # Maximum acceptable distance from the target
 
 
 def log(msg):
@@ -125,7 +125,7 @@ def get_calibrated_probs(model, x_local, edge_idx, edge_attr_loc, seed):
 
 
 # ──────────────────────────────────────────────
-# تابع فیتنس مشترک (با قید سخت) — هم GA هم Random Search از این استفاده می‌کنن
+# Shared fitness function (with the hard constraint) — both the GA and Random Search use it
 # ──────────────────────────────────────────────
 def make_fitness_fn(calibrated, G, edge_list, target_spars_pct, tolerance=SPARSIFICATION_TOLERANCE_PCT):
     n_edges = len(edge_list)
@@ -137,12 +137,12 @@ def make_fitness_fn(calibrated, G, edge_list, target_spars_pct, tolerance=SPARSI
         diff = abs(achieved_spars - target_spars_pct)
 
         if diff > tolerance:
-            # غیرقابل‌قبول: جریمه‌ی بسیار بزرگ و متناسب با میزان تخلف
-            # (بزرگ‌تر از هر مقدار ممکن برای n_repairs، تا GA/RS همیشه
-            # راه‌حل feasible را به غیرfeasible ترجیح دهد)
+            # Infeasible: a very large penalty proportional to the size of the violation
+            # (larger than any possible n_repairs value, so the GA/RS always
+            # prefers a feasible solution over an infeasible one)
             score = -1_000_000 - diff * 10_000
         else:
-            score = -len(repairs)  # فقط بین راه‌حل‌های feasible مقایسه کن
+            score = -len(repairs)  # Compare only among feasible solutions
 
         return score, len(repairs), achieved_spars
 
@@ -150,7 +150,7 @@ def make_fitness_fn(calibrated, G, edge_list, target_spars_pct, tolerance=SPARSI
 
 
 # ──────────────────────────────────────────────
-# ۱. GENETIC ALGORITHM
+# 1. GENETIC ALGORITHM
 # ──────────────────────────────────────────────
 def ga_optimize_threshold(fitness_fn, seed=0, pop_size=8, n_generations=6):
     rng = np.random.default_rng(seed)
@@ -171,7 +171,7 @@ def ga_optimize_threshold(fitness_fn, seed=0, pop_size=8, n_generations=6):
         log(f"  [GA] gen={gen} | best_threshold={scored[0][0]:.3f} | repairs={scored[0][2]} | "
             f"spars={scored[0][3]:.2f}% | feasible={scored[0][1] > -1_000_000}")
 
-        survivors = [s[0] for s in scored[:3]]  # الیتیسم: ۳ نفر برتر
+        survivors = [s[0] for s in scored[:3]]  # Elitism: top 3 individuals
         new_pop = list(survivors)
         while len(new_pop) < pop_size:
             parent = rng.choice(survivors)
@@ -183,8 +183,8 @@ def ga_optimize_threshold(fitness_fn, seed=0, pop_size=8, n_generations=6):
 
 
 # ──────────────────────────────────────────────
-# ۲. RANDOM SEARCH — با همان budget (تعداد ارزیابی) که GA داشت
-#    این برای اثبات "GA دلخواه نبوده" لازم است
+# 2. RANDOM SEARCH — with the same budget (number of evaluations) as the GA
+#    This is needed to show that "the GA was not arbitrary"
 # ──────────────────────────────────────────────
 def random_search_optimize_threshold(fitness_fn, n_evals, seed=100):
     rng = np.random.default_rng(seed)
@@ -203,7 +203,7 @@ def random_search_optimize_threshold(fitness_fn, n_evals, seed=100):
 
 
 # ──────────────────────────────────────────────
-# ۳. ACTIVE SELF-CORRECTING FEEDBACK LOOP
+# 3. ACTIVE SELF-CORRECTING FEEDBACK LOOP
 # ──────────────────────────────────────────────
 def active_feedback_finetune(model, x_local, edge_idx, edge_attr_loc, edge_list,
                               removed_edges, repaired_indices, n_edges, epochs=5, lr=FINETUNE_LR):
@@ -236,9 +236,9 @@ def active_feedback_finetune(model, x_local, edge_idx, edge_attr_loc, edge_list,
 
 def build_matched_random_mask(G, edge_list, n_removed_target, seed):
     """
-    دقیقاً n_removed_target یال را از بین یال‌های غیر-bottleneck به‌طور
-    تصادفی برای حذف انتخاب می‌کند، با دنبال‌کردن درجه‌ی زنده تا هیچ
-    گرهی زیر ۲ نیفتد (رفع همان باگ محافظ ثابت).
+    Selects exactly n_removed_target edges to remove from among the non-bottleneck edges
+    uniformly at random, tracking the live degree so that no
+    node falls below 2 (fixes the static-safeguard bug).
     """
     n_edges = len(edge_list)
     rng = np.random.default_rng(seed)
@@ -305,7 +305,7 @@ def run_city(city_label, city_query, base_model, n_seeds, base_threshold=0.40):
                           len(removed_B1)/n_edges*100, stretches_B1, repairs_B1, scc_B1,
                           extra={"n_evals": n_evals_ga}))
 
-        # --- B2) Random Search با همان budget ---
+        # --- B2) Random Search with the same budget ---
         best_t_rs, score_rs, n_evals_rs, hist_rs = random_search_optimize_threshold(
             fitness_fn, n_evals=n_evals_ga, seed=seed + 100
         )
@@ -326,7 +326,7 @@ def run_city(city_label, city_query, base_model, n_seeds, base_threshold=0.40):
         rows.append(_row(city_label, "C_GA_Threshold_plus_Feedback", seed,
                           len(removed_C)/n_edges*100, stretches_C, repairs_C, scc_C))
 
-        # --- D) Random Pruning هم‌سطح با C (تطبیق دقیق تعداد، نه احتمال) ---
+        # --- D) Random Pruning matched to C (exact count, not probability) ---
         mask_D = build_matched_random_mask(G, edge_list, len(removed_C), seed)
         G_final_D, removed_D, repairs_D = build_and_repair(G, edge_list, mask_D)
         stretches_D, scc_D = compute_stretch_and_scc(G, G_final_D, seed=seed)
@@ -355,10 +355,10 @@ def main():
     df.to_csv(OUT_CSV, mode="a", header=write_header, index=False)
 
     print("\n" + "=" * 70)
-    print("خلاصه‌ی میانگین هر Variant:")
+    print("Mean summary per Variant:")
     print(df.groupby("variant")[["sparsification_pct", "max_stretch", "n_repairs"]].mean().to_string())
     print("=" * 70)
-    print(f"\nذخیره شد در: {OUT_CSV}")
+    print(f"\nSaved to: {OUT_CSV}")
 
 
 if __name__ == "__main__":

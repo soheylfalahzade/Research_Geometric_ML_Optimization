@@ -1,14 +1,14 @@
 """
 profile_bottleneck.py
 ======================
-هدف: پیدا کردن اینکه دقیقاً کدوم بخش از پایپ‌لاین GNN بیشترین زمان رو
-می‌گیره — خود شبکه‌ی عصبی، محاسبه‌ی PageRank، یا مرحله‌ی GLV-Repair.
+Goal: find out exactly which part of the GNN pipeline takes the most time
+— the neural network itself, the PageRank computation, or the GLV-Repair.
 
-این اطلاعات تعیین می‌کنه که آیا باید:
-  (الف) پیاده‌سازی رو بهینه کنیم (اگه مشکل از overhead غیرضروریه)، یا
-  (ب) روایت مقاله رو عوض کنیم (اگه مشکل ذاتی الگوریتمه)
+This information determines whether we should:
+  ((a) optimize the implementation (if the problem is unnecessary overhead), or
+  ((b) revise the complexity claims (if the cost is inherent to the algorithm)
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/profile_bottleneck.py --city Rome
 """
 
@@ -34,7 +34,7 @@ WEIGHTS_PATH = PROJECT_ROOT / "results" / "models" / "best_base_model.pt"
 
 
 def timed(label):
-    """context manager ساده برای اندازه‌گیری و چاپ زمان هر بخش"""
+    """context manager Simple context manager to measure and print the time of each section"""
     class _Timer:
         def __enter__(self):
             self.t0 = time.perf_counter()
@@ -117,9 +117,9 @@ def main():
     print(f"  → {len(repairs)} edges restored")
 
     print("\n" + "=" * 60)
-    print("خلاصه: اگه مرحله‌ی ۷ (GLV-Repair) بیشترین زمان رو گرفته باشه،")
-    print("یعنی گلوگاه واقعی، تأیید هندسی است، نه خود شبکه‌ی عصبی.")
-    print("این دقیقاً چیزیه که باید در مقاله (یا در بهینه‌سازی بعدی) لحاظ بشه.")
+    print("Summary: if step 7 (GLV-Repair) took the most time,")
+    print("then the real bottleneck is geometric verification, not the neural network itself.")
+    print("This is exactly what should be taken into account in later optimization work.")
     print("=" * 60)
 
 

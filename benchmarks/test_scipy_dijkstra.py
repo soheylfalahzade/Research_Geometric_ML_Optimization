@@ -5,16 +5,16 @@ from scipy.sparse.csgraph import dijkstra
 
 print("Testing SciPy Dijkstra integration...")
 
-# ۱. ساخت یک گراف فرضی کوچک با ۵ گره و لبه‌های وزن‌دار
+# 1. Build a small hypothetical graph with 5 nodes and weighted edges
 G = nx.complete_graph(5)
 for u, v in G.edges():
     G[u][v]['length'] = np.random.uniform(1.0, 10.0)
 
-# ۲. تبدیل گراف به ماتریس اسپرس سایپای
+# 2. Convert the graph to a SciPy sparse matrix
 nodes = list(G.nodes())
 matrix = nx.adjacency_matrix(G, nodelist=nodes, weight='length')
 
-# ۳. اجرای الگوریتم دایجسترا از گره شماره ۲ به بقیه گره‌ها
+# 3. Run Dijkstra's algorithm from node 2 to the other nodes
 sources = [2]
 distances = dijkstra(matrix, directed=True, indices=sources)
 

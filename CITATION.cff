@@ -1,0 +1,13 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Research_Geometric_ML_Optimization: learned edge pruning for directed road-network spanners"
+type: software
+authors:
+  - family-names: "Fallahzadeh"
+    given-names: "Soheil"
+repository-code: "https://github.com/soheylfalahzade/Research_Geometric_ML_Optimization"
+license: MIT
+keywords:
+  - geometric spanners
+  - graph neural networks
+  - road networks

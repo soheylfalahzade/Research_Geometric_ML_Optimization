@@ -8,7 +8,7 @@ import osmnx as ox
 from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra
 
-# وارد کردن مدل و تنظیمات از فایل اصلی
+# Import the model and settings from the main file
 from spanner_pipeline import GeometricEdgeSAGE, glv_repair_directed, CITIES, safe_weighted_adjacency
 
 def run_high_t_benchmark():
@@ -17,23 +17,23 @@ def run_high_t_benchmark():
     model = GeometricEdgeSAGE()
     model.load_state_dict(torch.load(weights_path, weights_only=True, map_location="cpu"))
     
-    # لود شبکه جاده‌ای آیندهوون
+    # Load the Eindhoven road network
     G = ox.graph_from_place(CITIES["Eindhoven"], network_type="drive")
     edge_list = list(G.edges(data=True))
     node_map = {n: i for i, n in enumerate(G.nodes())}
     
-    # آماده‌سازی ویژگی‌ها برای GNN
+    # Prepare the features for GNN
     raw_node = np.array([[G.in_degree(n), G.out_degree(n), 0.1] for n in G.nodes()])
     x = torch.tensor(StandardScaler().fit_transform(raw_node), dtype=torch.float)
     edge_idx = torch.tensor([[node_map[u] for u, v, d in edge_list], [node_map[v] for u, v, d in edge_list]], dtype=torch.long)
     raw_ea = torch.tensor(StandardScaler().fit_transform(np.array([[d['length']] for u, v, d in edge_list])), dtype=torch.float)
     
-    # استنتاج概率 GNN
+    # GNN probability inference
     model.eval()
     with torch.no_grad():
         probs = torch.sigmoid(model(x, edge_idx, raw_ea)).numpy().flatten()
         
-    # جاروب هم‌زمان آستانه و ضریب کشش
+    # Sweep the threshold and the stretch factor together
     scenarios = [
         {"tau": 0.80, "t_limit": 2.0},
         {"tau": 0.90, "t_limit": 2.0},
@@ -47,7 +47,7 @@ def run_high_t_benchmark():
         tau = sc["tau"]
         t_limit = sc["t_limit"]
         
-        # ۱. هرس اولیه توسط GNN
+        # 1. Initial pruning by the GNN
         removed_edges_info = []
         G_sparse = nx.DiGraph()
         G_sparse.add_nodes_from(G.nodes())
@@ -61,15 +61,15 @@ def run_high_t_benchmark():
                 
         initial_prune_rate = (len(removed_edges_info) / len(edge_list)) * 100
         
-        # ۲. اجرای ترمیم مستقل مکانی روی گراف به شدت هرس شده با t جدید
+        # 2. Run spatially independent repair on the heavily pruned graph with the new t
         t0 = time.time()
         G_repaired, repairs = glv_repair_directed(G_sparse, removed_edges_info, t_limit=t_limit)
         repair_time = time.time() - t0
         
-        # محاسبه درصد هرس نهایی باقی‌مانده (حفظ شده)
+        # Compute the final retained percentage after pruning (kept)
         final_sparsification = ((len(removed_edges_info) - len(repairs)) / len(edge_list)) * 100
         
-        # محاسبه ضریب کشش نهایی روی نمونه‌های تصادفی
+        # Compute the final stretch on random samples
         nodes = list(G.nodes())
         sources = np.random.choice(len(nodes), 200, replace=False)
         d_orig = dijkstra(safe_weighted_adjacency(G, nodelist=list(G.nodes()), weight='length'), directed=True, indices=sources)

@@ -1,26 +1,26 @@
 # ============================================================================
 # requirements.txt — Geo-SmartSpanner (Research_Geometric_ML_Optimization)
-# فقط پکیج‌هایی که واقعاً در کد پروژه import می‌شوند؛ نسخهٔ قبلی این فایل
-# خروجی کامل conda/pip freeze بود (بیش از ۱۵۰ پکیج نامرتبط مثل streamlit،
-# telegram-bot، selenium، sumo/traci، ultralytics). آن‌ها حذف شدند.
+# Only the packages that the project code actually imports; the previous version of this file
+# was a full conda/pip freeze (more than 150 unrelated packages such as streamlit,
+# telegram-bot, selenium, sumo/traci, ultralytics). They were removed.
 # ============================================================================
 
-# --- هستهٔ عددی / گراف ---
+# --- numerics / graphs ---
 numpy>=1.26,<3.0
 scipy>=1.13
 networkx>=3.3
 pandas>=2.2
 
-# --- یادگیری عمیق ---
+# --- deep learning ---
 torch>=2.3
 torch-geometric>=2.5
 scikit-learn>=1.5
 
-# --- داده‌های مکانی / OSM ---
+# --- spatial data / OSM ---
 osmnx>=1.9
 pyrosm>=0.6  # used by benchmarks/scale_test_tokyo.py and leave_one_scale_out.py (local PBF loading)
 
-# --- رسم و گزارش ---
+# --- plotting and reporting ---
 matplotlib>=3.9
 seaborn>=0.13
 folium>=0.16

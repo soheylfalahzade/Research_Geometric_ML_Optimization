@@ -1,11 +1,11 @@
 """
-run_full_benchmark.py (نسخه‌ی ۲ — با Edge Betweenness Centrality واقعی)
+run_full_benchmark.py (version 2 — with true Edge Betweenness Centrality)
 ==========================================================================
-همان منطق نسخه‌ی قبلی، با یک تفاوت کلیدی: ویژگی centrality اکنون واقعاً
-محاسبه و به مدل داده می‌شود (نه فقط طول یال). centrality فقط یک‌بار به
-ازای هر شهر محاسبه می‌شود (نه به‌ازای هر seed) چون به مدل بستگی ندارد.
+Same logic as the previous version, with one key difference: the centrality feature is now actually
+computed and fed to the model (not only the edge length). Centrality is computed only once per
+city (not per seed) because it does not depend on the model.
 
-نحوه‌ی اجرا (از ریشه‌ی پروژه):
+How to run (from the project root):
     python benchmarks/run_full_benchmark.py
     python benchmarks/run_full_benchmark.py --city Eindhoven --seeds 2
 """
@@ -114,10 +114,10 @@ def run_classic_greedy_spanner(G: nx.DiGraph, t_limit: float = GLV_T_LIMIT):
 def run_our_gnn_framework(G: nx.DiGraph, model: GeometricEdgeSAGE, edge_list, x_local, edge_idx,
                            edge_attr_loc, seed: int):
     """
-    اجرای پایپ‌لاین GNN. توجه: ویژگی‌های ثابت گراف (x_local, edge_idx,
-    edge_attr_loc که شامل centrality است) از بیرون پاس داده می‌شوند تا
-    محاسبه‌ی سنگین centrality فقط یک‌بار به‌ازای هر شهر انجام شود، نه
-    به‌ازای هر seed.
+    Runs the GNN pipeline. Note: the fixed graph features (x_local, edge_idx,
+    edge_attr_loc which includes centrality) are passed in from outside so that
+    the heavy centrality computation is done only once per city, not
+    per seed.
     """
     torch.manual_seed(seed)
     np.random.seed(seed)
@@ -184,12 +184,12 @@ def benchmark_one_city(city_label: str, city_query: str, model: GeometricEdgeSAG
 
     G = load_city_scc(city_query, city_label)
 
-    # --- Greedy واقعی (یک‌بار) ---
+    # --- Greedy reference (once) ---
     H_greedy, time_greedy = run_classic_greedy_spanner(G)
     spars_greedy = (1 - H_greedy.number_of_edges() / G.number_of_edges()) * 100
     stretches_greedy, scc_greedy = compute_stretch_and_scc(G, H_greedy)
 
-    # --- ویژگی‌های ثابت گراف (شامل centrality) — فقط یک‌بار محاسبه میشه ---
+    # --- fixed graph features (including centrality) — computed only once ---
     log(f"  [Features] Computing PageRank and Edge Betweenness Centrality...")
     pagerank = nx.pagerank(G, weight="length")
     edge_list = list(G.edges(data=True))
@@ -203,7 +203,7 @@ def benchmark_one_city(city_label: str, city_query: str, model: GeometricEdgeSAG
     centrality_dict = compute_edge_centrality(G, weight="length")
     edge_attr_loc = build_edge_features(edge_list, centrality_dict)
 
-    # --- روش پیشنهادی (چند seed) ---
+    # --- proposed method (multiple seed) ---
     gnn_times, gnn_spars, gnn_repairs, gnn_max_stretch, gnn_scc = [], [], [], [], []
     for seed in range(n_seeds):
         log(f"  [GNN] seed={seed} ...")
@@ -272,8 +272,8 @@ def main():
         alt = PROJECT_ROOT / "spanner_dataset_pro.csv"
         data_csv = alt if alt.exists() else data_csv
 
-    # ⚠️ چون معماری مدل تغییر کرده (edge_attr_dim از ۱ به ۲)، وزن‌های
-    # قدیمی دیگر سازگار نیستند. باید دوباره train شود.
+    # ⚠️ Because the model architecture changed (edge_attr_dim from 1 to 2), the old weights
+    # are no longer compatible. It must be retrained.
     log(f"Re-training base model (architecture changed: edge_attr now includes centrality)...")
     model = train_base_model(csv_path=str(data_csv), weights_path=str(weights_path))
 
@@ -291,7 +291,7 @@ def main():
     if CSV_FILE.exists():
         df = pd.read_csv(CSV_FILE)
         log("\n" + df.to_string(index=False))
-    log(f"\nنتایج نهایی در: {CSV_FILE}")
+    log(f"\nFinal results in: {CSV_FILE}")
 
 
 if __name__ == "__main__":

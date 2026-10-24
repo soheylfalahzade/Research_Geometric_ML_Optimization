@@ -1,10 +1,10 @@
 """
-ablation_and_baseline.py (نسخه‌ی ۲ — با Edge Betweenness Centrality واقعی)
+ablation_and_baseline.py (version 2 — with true Edge Betweenness Centrality)
 =============================================================================
-همان ۴ حالت قبلی (Full Proposed / No MC-Dropout / Non-GA Threshold /
-Random Pruning Baseline)، این‌بار با ویژگی centrality واقعی در مدل.
+The same 4 variants as before (Full Proposed / No MC-Dropout / Non-GA Threshold /
+Random Pruning Baseline), this time with the true centrality feature in the model.
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/ablation_and_baseline.py --city Eindhoven --seeds 5
     python benchmarks/ablation_and_baseline.py --city Rome --seeds 3
 """
@@ -51,7 +51,7 @@ def load_city_scc(city_query):
 
 
 def prepare_features(G):
-    """ویژگی‌های گره (degree+pagerank) و یال (length+centrality واقعی)."""
+    """Node features (degree+pagerank) and edge features (length + true centrality)."""
     log("  Computing PageRank...")
     pagerank = nx.pagerank(G, weight="length")
     edge_list = list(G.edges(data=True))
@@ -208,10 +208,10 @@ def main():
     df.to_csv(OUT_CSV, mode="a", header=write_header, index=False)
 
     print("\n" + "=" * 70)
-    print("خلاصه‌ی میانگین هر Variant:")
+    print("Mean summary per Variant:")
     print(df.groupby("variant")[["sparsification_pct", "max_stretch", "n_repairs"]].mean().to_string())
     print("=" * 70)
-    print(f"\nذخیره شد در: {OUT_CSV}")
+    print(f"\nSaved to: {OUT_CSV}")
 
 
 if __name__ == "__main__":

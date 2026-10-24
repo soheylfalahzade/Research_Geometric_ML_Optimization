@@ -1,11 +1,11 @@
 """
 analyze_fuzzy_results.py
 ===========================
-جمع‌بندی همه‌ی فایل‌های fuzzy_pruning_*.csv که تا الان تولید شده‌اند.
-فقط seed‌هایی را حساب می‌کند که sparsification_pct بین E، C، و D
-(با تلورانس ۰.۰۰۱٪) دقیقاً برابر باشد — یعنی مقایسه‌ی عادلانه بوده است.
+Summary of all fuzzy_pruning_*.csv files produced so far.
+counts only the seeds for which sparsification_pct is equal among E, C, and D
+(within a tolerance of 0.001%), exactly equal — i.e. the comparison was fair.
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/analyze_fuzzy_results.py
 """
 
@@ -21,7 +21,7 @@ TOLERANCE = 0.001
 
 def load_all_runs():
     files = sorted(glob.glob(str(RAW_RUNS_DIR / "fuzzy_pruning_*.csv")))
-    print(f"فایل‌های پیدا شده ({len(files)} فایل):")
+    print(f"files found ({len(files)} files):")
     for f in files:
         print(f"  - {Path(f).name}")
     dfs = []
@@ -51,13 +51,13 @@ def filter_valid_rows(df):
 
 def main():
     df_all = load_all_runs()
-    print(f"\nکل ردیف‌های خام: {len(df_all)}")
+    print(f"\ntotal raw rows: {len(df_all)}")
 
     df_valid = filter_valid_rows(df_all)
-    print(f"ردیف‌های معتبر (E/C/D دقیقاً هم‌سطح): {len(df_valid)}\n")
+    print(f"valid rows (E/C/D exactly matched in sparsification): {len(df_valid)}\n")
 
     print("=" * 90)
-    print("خلاصه‌ی نهایی به تفکیک شهر:")
+    print("final summary per city:")
     print("=" * 90)
     summary = df_valid.groupby(["city", "variant"])[["sparsification_pct", "max_stretch", "n_repairs"]].agg(
         ["mean", "std", "count"]
@@ -65,7 +65,7 @@ def main():
     print(summary.to_string())
 
     print("\n" + "=" * 90)
-    print("مقایسه‌ی مستقیم: آیا Fuzzy (E) بهتر از C و D است؟")
+    print("direct comparison: is Fuzzy (E) better than C and D?")
     print("=" * 90)
     for city in df_valid["city"].unique():
         sub = df_valid[df_valid["city"] == city]
@@ -79,7 +79,7 @@ def main():
 
     out_path = RAW_RUNS_DIR / "CLEAN_fuzzy_combined_results.csv"
     df_valid.to_csv(out_path, index=False)
-    print(f"\n✅ داده‌ی تمیز ذخیره شد: {out_path}")
+    print(f"\n✅ clean data saved: {out_path}")
 
 
 if __name__ == "__main__":

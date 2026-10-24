@@ -11,29 +11,29 @@ from concurrent.futures import ThreadPoolExecutor
 import scipy.sparse as sp
 from scipy.sparse.csgraph import dijkstra, connected_components
 
-# تنظیمات برای تست مستقل جهت‌دار
+# Settings for the independent directed test
 PRUNING_THRESHOLD = 0.40
 GLV_T_LIMIT = 1.5
 NUM_THREADS = 4
 
 class MockGNN(nn.Module):
-    """یک مدل ساده برای تست لایه‌های ورودی جهت‌دار"""
+    """A simple model to test the directed input layers"""
     def __init__(self):
         super().__init__()
-        # ورودی: [In-Degree, Out-Degree, PageRank] -> 3 ویژگی
+        # Input: [In-Degree, Out-Degree, PageRank] -> 3 features
         self.fc = nn.Linear(3, 1)
     def forward(self, x):
         return self.fc(x)
 
 def test_full_directed_pipeline():
-    print("--- 🏁 Full Directed Pipeline Test (Gap 7) ---")
+    print("--- 🏁 Full Directed Pipeline Test ---")
     city_query = "Eindhoven, Netherlands"
     
-    # ۱. بارگذاری گراف به صورت جهت‌دار
+    # 1. Load the graph as a directed graph
     print(f"[1/5] Downloading Directed Graph...")
     G_raw = ox.graph_from_place(city_query, network_type='drive')
     
-    # استخراج Largest SCC (هسته اصلی شهر برای جلوگیری از خطای بن‌بست)
+    # Extract the largest SCC (the main core of the city, to avoid dead-end errors)
     print("[2/5] Extracting Largest Strongly Connected Component...")
     nodes = list(G_raw.nodes())
     adj = nx.adjacency_matrix(G_raw, nodelist=nodes, weight='length')
@@ -43,12 +43,12 @@ def test_full_directed_pipeline():
     G = G_raw.subgraph(nodes_to_keep).copy()
     print(f"      Graph reduced from {len(nodes)} to {G.number_of_nodes()} nodes (Clean SCC).")
 
-    # ۲. استخراج ویژگی‌های جهت‌دار (In-Degree vs Out-Degree)
+    # 2. Extract directed features (In-Degree vs Out-Degree)
     print("[3/5] Feature Engineering (Directed Metrics)...")
     pagerank = nx.pagerank(G, weight='length')
     node_features = []
     for n in G.nodes():
-        # ویژگی‌های جدید برای گراف جهت‌دار
+        # New features for the directed graph
         in_d = G.in_degree(n)
         out_d = G.out_degree(n)
         pr = pagerank.get(n, 0.0001)
@@ -56,18 +56,18 @@ def test_full_directed_pipeline():
     
     X = StandardScaler().fit_transform(node_features)
     
-    # ۳. شبیه‌سازی هرس (Pruning) با حفظ گره‌های بحرانی جهت‌دار
+    # 3. Simulate pruning (Pruning) while keeping the critical directed nodes
     print("[4/5] Pruning with Directed Safeguards...")
     edge_list = list(G.edges(data=True))
-    G_sparse = nx.DiGraph() # گراف هرس شده هم باید جهت‌دار باشد
+    G_sparse = nx.DiGraph() # The pruned graph must also be directed
     G_sparse.add_nodes_from(G.nodes())
     
     removed = []
     for i, (u, v, d) in enumerate(edge_list):
-        # محافظت از گره‌های تک‌مسیره (خیابان‌های یک‌طرفه اجباری)
+        # Protect single-route nodes (mandatory one-way streets)
         is_critical = (G.in_degree(v) <= 1) or (G.out_degree(u) <= 1)
         
-        # شبیه‌سازی خروجی مدل (تصادفی برای تست)
+        # Simulate the model output (random, for the test)
         prob = np.random.uniform(0, 1)
         
         if prob > PRUNING_THRESHOLD or is_critical:
@@ -75,12 +75,12 @@ def test_full_directed_pipeline():
         else:
             removed.append({'u': u, 'v': v, 'length': d['length'], 'idx': i})
 
-    # ۴. ترمیم دایجسترا به صورت جهت‌دار (Directed=True)
+    # 4. Directed Dijkstra repair (Directed=True)
     print(f"[5/5] Directed GLV-Repair on {len(removed)} edges...")
     def check_directed_edge(edge_info):
         u, v, w = edge_info['u'], edge_info['v'], edge_info['length']
         try:
-            # دایجسترا باید حتماً جهت را رعایت کند
+            # Dijkstra must respect the direction
             dist = nx.shortest_path_length(G_sparse, u, v, weight='length')
             return edge_info['idx'], dist > GLV_T_LIMIT * w
         except:
@@ -94,12 +94,12 @@ def test_full_directed_pipeline():
             e = next(x for x in removed if x['idx'] == idx)
             G_sparse.add_edge(e['u'], e['v'], length=e['length'])
 
-    # ۵. ارزیابی نهایی SCC و ضریب کشش جهت‌دار
+    # 5. Final evaluation of SCC and the directed stretch
     print("\n" + "="*50)
     print("      FINAL DIRECTED VALIDATION RESULTS")
     print("="*50)
     
-    # چک کردن SCC نهایی
+    # Check the final SCC
     adj_final = nx.adjacency_matrix(G_sparse, weight='length')
     n_final, _ = connected_components(adj_final, directed=True, connection='strong')
     

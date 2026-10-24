@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestClassifier
 class SpannerOptimizer:
     def __init__(self, t=2.0):
         self.t = t
-        # استفاده از بهترین پارامترهایی که الگوریتم ژنتیک دیشب پیدا کرد
+        # Use the best parameters found by the genetic algorithm
         self.model = RandomForestClassifier(
             n_estimators=127, 
             max_depth=7, 
@@ -16,30 +16,30 @@ class SpannerOptimizer:
         )
         
     def repair(self, G, pruned_G):
-        """الگوریتم ترمیم: یال‌های حیاتی که شرط t را نقض کرده‌اند بازمی‌گرداند"""
+        """Repair algorithm: restores the critical edges that violate the t condition"""
         repaired_G = pruned_G.copy()
         violations = 0
         
-        # استخراج یال‌هایی که مدل حذف کرده است (Potential missing critical edges)
+        # Extract the edges the model removed (Potential missing critical edges)
         nodes = list(G.nodes())
         print("Starting Repair Module: Scanning for connectivity gaps...")
         
-        # تست تصادفی برای ارزیابی ضریب کشیدگی در مقیاس بزرگ
+        # Random test to evaluate the stretch factor at large scale
         for i in range(1000): 
             u, v = np.random.choice(nodes, 2, replace=False)
             
-            # اگر در گراف اصلی مسیری هست، در گراف هرس شده هم باید باشد
+            # If a path exists in the original graph, it must also exist in the pruned graph
             try:
                 d_orig = nx.shortest_path_length(G, u, v, weight='length')
                 try:
                     d_pruned = nx.shortest_path_length(repaired_G, u, v, weight='length')
                     if d_pruned > self.t * d_orig:
-                        # نقض شرط t: یال مستقیم را برای بازگرداندن ضریب باز می‌گردانیم
+                        # t condition violated: restore the direct edge to bring back the stretch bound
                         if G.has_edge(u, v):
                             repaired_G.add_edge(u, v, length=G[u][v]['length'])
                             violations += 1
                 except nx.NetworkXNoPath:
-                    # گراف ناپیوسته شده: بازگرداندن یال برای حفظ اتصال
+                    # the graph became disconnected: restore the edge to keep connectivity
                     if G.has_edge(u, v):
                         repaired_G.add_edge(u, v, length=G[u][v]['length'])
                         violations += 1
@@ -52,18 +52,18 @@ class SpannerOptimizer:
         return repaired_G, violations
 
     def optimize(self, G, df):
-        # مرحله ۱: هرس هوشمند با ML
+        # Step 1: smart pruning with ML
         features = ["length", "u_degree", "v_degree", "dx", "dy", "edge_centrality", "u_pagerank", "v_pagerank"]
         X = df[features]
         df['predicted'] = self.model.predict(X)
         
-        # ساخت گراف اولیه هرس شده
+        # Build the initial pruned graph
         pruned_G = nx.Graph()
         pruned_G.add_nodes_from(G.nodes())
-        # فقط یال‌هایی که مدل گفته 1 (بماند)
+        # Only the edges the model said 1 (keep)
         for _, row in df[df['predicted'] == 1].iterrows():
             pruned_G.add_edge(int(row['node_u']), int(row['node_v']), length=row['length'])
             
-        # مرحله ۲: ترمیم (تضمین ریاضی کران کشش)
+        # Step 2: repair (enforcing the per-edge stretch bound)
         final_G, total_repairs = self.repair(G, pruned_G)
         return final_G, total_repairs

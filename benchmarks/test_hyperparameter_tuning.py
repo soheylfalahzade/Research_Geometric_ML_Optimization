@@ -9,11 +9,11 @@ import pandas as pd
 from sklearn.preprocessing import StandardScaler
 from concurrent.futures import ThreadPoolExecutor
 
-# وارد کردن توابع پایه‌ای از فایل اصلی
+# Import the base functions from the main file
 from spanner_pipeline import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_directed_edge, compute_global_stretch_scipy
 
-NEW_FINETUNE_EPOCHS = 5       # ۵ اپوک فین‌تیون نرم
-NEW_FINETUNE_LR     = 0.0001  # نرخ یادگیری ملایم
+NEW_FINETUNE_EPOCHS = 5       # 5 epochs of gentle fine-tuning
+NEW_FINETUNE_LR     = 0.0001  # gentle learning rate
 
 def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_size=250):
     repaired_G = G_sparse.copy()
@@ -41,7 +41,7 @@ def test_threshold_grid_search():
     print("--- Initiating Systematic Threshold Grid Search on [Eindhoven] ---")
     weights_path = 'best_base_model.pt'
     
-    # دانلود گراف و پل‌های هندسی فقط یک‌بار برای افزایش شدید سرعت اجرای تست
+    # Download the graph and the geometric bridges only once to greatly speed up the test run
     G = ox.graph_from_place("Eindhoven, Netherlands", network_type="drive")
     G = ox.project_graph(G).to_undirected()
     
@@ -58,19 +58,19 @@ def test_threshold_grid_search():
     raw_ea        = np.array([[d["length"]] for u, v, k, d in edge_list])
     edge_attr_loc = torch.tensor(StandardScaler().fit_transform(raw_ea), dtype=torch.float)
     
-    # تعریف آستانه‌های هدف برای اسکن سیستماتیک
+    # Define the target thresholds for the systematic scan
     thresholds = [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55]
     grid_results = []
     
     for theta in thresholds:
         print(f"\nEvaluating Threshold (theta) = {theta:.2f}...")
         
-        # لود کردن مجدد وزن‌های پایه برای استقلال هر آزمایش از آزمایش قبلی
+        # Reload the base weights so that each experiment is independent of the previous one
         model = GeometricEdgeSAGE()
         model.load_state_dict(torch.load(weights_path, weights_only=True, map_location="cpu"))
         model.eval()
         
-        # ۱. استنتاج دور اول با آستانه فعلی
+        # 1. First inference pass with the current threshold
         with torch.no_grad():
             probs = torch.sigmoid(model(x_local, edge_idx, edge_attr_loc)).numpy().flatten()
             
@@ -92,7 +92,7 @@ def test_threshold_grid_search():
                 
         G_repaired, repaired_indices = glv_repair_batched(G_sparse, removed_edges)
         
-        # ۲. فین‌تیون نرم
+        # 2. Gentle fine-tuning
         optimizer = torch.optim.Adam(model.parameters(), lr=NEW_FINETUNE_LR)
         repaired_set = set(repaired_indices)
         y_vals = []
@@ -113,7 +113,7 @@ def test_threshold_grid_search():
             loss.backward()
             optimizer.step()
             
-        # ۳. استنتاج نهایی با آستانه کالیبره‌شده
+        # 3. Final inference with the calibrated threshold
         model.eval()
         with torch.no_grad():
             final_probs = torch.sigmoid(model(x_local, edge_idx, edge_attr_loc)).numpy().flatten()
@@ -136,7 +136,7 @@ def test_threshold_grid_search():
                 
         G_final, final_repairs = glv_repair_batched(G_opt, removed_final)
         
-        # ارزیابی ۱۰۰,۰۰۰ دایجسترا به صورت فوق‌سریع در SciPy
+        # Evaluation of 100,000 Dijkstra queries, ultra-fast in SciPy
         stretches = compute_global_stretch_scipy(G, G_final, num_samples=100000)
         
         sparsification = (1 - G_final.number_of_edges() / G.number_of_edges()) * 100

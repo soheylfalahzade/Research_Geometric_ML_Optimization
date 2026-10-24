@@ -4,7 +4,7 @@ SCIENTIFIC BENCHMARKER — SOTA Comparison Suite
 ================================================================================
 Baseline-comparison gaps addressed:
 1. Isolated Inference Time: Comparing Online GNN vs. Iterative Greedy.
-2. Failure Scenario: Proving MC-Dropout under Graph Corruption (Gap 9).
+2. Failure Scenario: Proving MC-Dropout under Graph Corruption.
 3. Scalability Analysis: Showing Speedup on Metropolitan Scales (Log Scale).
 ================================================================================
 """
@@ -21,13 +21,13 @@ import matplotlib.pyplot as plt
 from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra, connected_components
 
-# وارد کردن مدل و تنظیمات از فایل اصلی
+# Import the model and settings from the main file
 from spanner_pipeline import (
     GeometricEdgeSAGE, PRUNING_THRESHOLD, MC_SAMPLES, CITIES, safe_weighted_adjacency
 )
 
 def get_pure_inference_time(model, x, edge_idx, edge_attr):
-    """محاسبه زمان خالص استنتاج هوش مصنوعی (بدون دانلود و پیش‌پردازش)"""
+    """Compute the pure AI inference time (without download and preprocessing)"""
     model.eval()
     t0 = time.time()
     with torch.no_grad():
@@ -35,44 +35,44 @@ def get_pure_inference_time(model, x, edge_idx, edge_attr):
     return time.time() - t0
 
 def simulate_greedy_time_for_city(G, num_samples=100):
-    """تخمین زمان واقعی الگوریتم حریصانه کلاسیک بر اساس دایجستراهای مکرر"""
+    """Estimate the real running time of the classical greedy algorithm based on repeated Dijkstra runs"""
     edges = list(G.edges())
-    # شبیه‌سازی ۱۰۰ بار اجرای دایجسترا برای تخمین میانگین
+    # Simulate 100 Dijkstra runs to estimate the average
     t0 = time.time()
     for i in range(min(num_samples, len(edges))):
         try:
             nx.shortest_path_length(G, edges[i][0], edges[i][1], weight='length')
         except: pass
     avg_dijkstra_time = (time.time() - t0) / num_samples
-    # زمان کل Greedy = تعداد یال‌ها ضربدر زمان هر دایجسترا
+    # Total Greedy time = number of edges times the time of one Dijkstra
     return avg_dijkstra_time * len(edges)
 
 def run_stress_test_ablation(model, x, edge_idx, edge_attr, edge_list, G):
     """
-    سناریوی شکست: تست مدل در شرایطی که نقشه تخریب شده (Corruption) است.
-    ثابت می‌کند MC-Dropout کجا نجات‌بخش است.
+    Failure scenario: test the model when the map is corrupted (Corruption).
+    Shows where MC-Dropout helps.
     """
-    # ایجاد نویز در ویژگی‌های ورودی (تخریب نقشه)
+    # Add noise to the input features (corrupt the map)
     x_noisy = x + torch.randn_like(x) * 0.5 
     
-    # ۱. استنتاج دترمینستیک (بدون عدم قطعیت)
+    # 1. Deterministic inference (without uncertainty)
     model.eval()
     with torch.no_grad():
         probs_det = torch.sigmoid(model(x_noisy, edge_idx, edge_attr)).numpy().flatten()
     
-    # ۲. استنتاج پیشنهادی (با MC-Dropout و عدم قطعیت)
+    # 2. Proposed inference (with MC-Dropout and uncertainty)
     model.train()
     mc_preds = [torch.sigmoid(model(x_noisy, edge_idx, edge_attr)).detach().numpy().flatten() for _ in range(MC_SAMPLES)]
-    probs_mc = np.mean(mc_preds, axis=0) + (1.0 * np.std(mc_preds, axis=0)) # ضریب احتیاط بالاتر برای تست
+    probs_mc = np.mean(mc_preds, axis=0) + (1.0 * np.std(mc_preds, axis=0)) # higher caution factor for the test
 
-    # محاسبه Max Stretch برای هر دو حالت روی گراف نویزی
+    # Compute Max Stretch for both modes on the noisy graph
     def get_max_stretch(probs):
         H = nx.DiGraph()
         H.add_nodes_from(G.nodes())
         for i, (u, v, d) in enumerate(edge_list):
             if probs[i] > PRUNING_THRESHOLD: H.add_edge(u, v, length=d['length'])
         
-        # محاسبه ضریب کشش روی نمونه‌های تصادفی
+        # Compute the stretch on random samples
         nodes = list(G.nodes())
         sources = np.random.choice(len(nodes), 100)
         d_orig = dijkstra(safe_weighted_adjacency(G, nodelist=nodes, weight='length'), directed=True, indices=sources)
@@ -97,13 +97,13 @@ def main_redemption_suite():
         edge_list = list(G.edges(data=True))
         node_map = {n: i for i, n in enumerate(G.nodes())}
         
-        # آماده‌سازی داده برای GNN
+        # Prepare the data for GNN
         raw_node = np.array([[G.in_degree(n), G.out_degree(n), 0.1] for n in G.nodes()])
         x = torch.tensor(StandardScaler().fit_transform(raw_node), dtype=torch.float)
         edge_idx = torch.tensor([[node_map[u] for u, v, d in edge_list], [node_map[v] for u, v, d in edge_list]], dtype=torch.long)
         raw_ea = torch.tensor(StandardScaler().fit_transform(np.array([[d['length']] for u, v, d in edge_list])), dtype=torch.float)
 
-        # ۱. بنچمارک سرعت منصفانه (Inference vs Greedy)
+        # 1. Fair speed benchmark (Inference vs Greedy)
         gnn_time = get_pure_inference_time(model, x, edge_idx, raw_ea)
         greedy_time = simulate_greedy_time_for_city(G)
         
@@ -112,14 +112,14 @@ def main_redemption_suite():
             "Greedy_Search (s)": greedy_time, "Speedup": greedy_time / gnn_time
         })
 
-        # ۲. بنچمارک شکست (Stress Test)
+        # 2. Failure benchmark (Stress Test)
         mc_stretch, det_stretch = run_stress_test_ablation(model, x, edge_idx, raw_ea, edge_list, G)
         stress_results.append({
             "City": label, "Proposed_MC": mc_stretch, "Ablated_Det": det_stretch
         })
 
     # ──────────────────────────────────────────────
-    # ۳. تولید خروجی‌های بصری برای نجات مقاله
+    # 3. Generate the visual outputs for reporting
     # ──────────────────────────────────────────────
     df_speed = pd.DataFrame(speed_results)
     print("\n" + "="*85)
@@ -127,7 +127,7 @@ def main_redemption_suite():
     print("="*85)
     print(df_speed.to_string(index=False))
 
-    # نمودار ۱: شتاب فوق‌العاده (Speedup)
+    # Figure 1: speedup
     plt.figure(figsize=(10, 6))
     plt.bar(df_speed['City'], df_speed['Speedup'], color='forestgreen', alpha=0.8)
     plt.yscale('log')
@@ -137,7 +137,7 @@ def main_redemption_suite():
     plt.grid(axis='y', which='both', linestyle='--', alpha=0.5)
     plt.savefig("scientific_speedup_fixed.png", dpi=300)
 
-    # نمودار ۲: اثبات ضرورت MC-Dropout در شرایط بحرانی
+    # Figure 2: evidence that MC-Dropout is necessary under harsh conditions
     df_stress = pd.DataFrame(stress_results)
     df_stress.plot(x="City", y=["Proposed_MC", "Ablated_Det"], kind="bar", color=['navy', 'crimson'], figsize=(10,6))
     plt.axhline(1.5, color='black', linestyle='--', label='T-Spanner Limit')

@@ -1,0 +1,22 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install the torch-free dependencies
+        run: pip install numpy scipy networkx pandas scikit-learn matplotlib pytest
+      - name: Run tests (torch and osmnx are replaced by stand-ins; the neural network is not tested here)
+        run: pytest -q

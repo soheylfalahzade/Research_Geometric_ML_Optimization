@@ -1,27 +1,27 @@
 """
 fuzzy_pruning.py
 ===================
-به‌جای یک آستانه‌ی سخت روی احتمال مدل (مثلاً "اگه prob > 0.40 نگه‌دار")،
-یک سیستم استنتاج فازی (Mamdani-style) می‌سازیم که ۲ ورودی را ترکیب
-می‌کند:
-  - probability: احتمال کالیبره‌شده‌ی مدل (از MC-Dropout)
-  - centrality: مرکزیت میانی یال (Edge Betweenness Centrality)
+Instead of a hard threshold on the model probability (for example "keep if prob > 0.40"),
+we build a fuzzy inference system (Mamdani-style) that combines 2
+inputs:
+  - probability: calibrated model probability (from MC-Dropout)
+  - centrality: edge betweenness centrality
 
-قوانین فازی (زبان طبیعی):
-  1. اگر probability بالا باشد  -> قطعاً نگه‌دار (بدون توجه به centrality)
-  2. اگر probability متوسط و centrality بالا باشد -> نگه‌دار (یال مهم است)
-  3. اگر probability متوسط و centrality پایین باشد -> هرس کن
-  4. اگر probability پایین و centrality بالا باشد -> نگه‌دار (احتیاط)
-  5. اگر probability پایین و centrality پایین باشد -> قطعاً هرس کن
+Fuzzy rules (natural language):
+  1. if probability is high -> definitely keep (regardless of centrality)
+  2. if probability is medium and centrality is high -> keep (the edge is important)
+  3. if probability is medium and centrality is low -> prune
+  4. if probability is low and centrality is high -> keep (caution)
+  5. if probability is low and centrality is low -> definitely prune
 
-این رویکرد از یک آستانه‌ی سخت تک‌بعدی هوشمندتر است، چون یال‌هایی که
-مدل به آن‌ها مطمئن نیست (probability متوسط) را بر اساس اهمیت ساختاری
-واقعی‌شان (centrality) قضاوت می‌کند، نه فقط یک عدد.
+This approach is smarter than a one-dimensional hard threshold, because the edges
+about which the model is unsure (medium probability) are judged by their real
+structural importance (centrality), not just by a single number.
 
-بدون نیاز به کتابخانه‌ی خارجی (scikit-fuzzy) — همه‌چیز با numpy خام
-پیاده‌سازی شده تا هیچ وابستگی جدیدی لازم نباشد.
+No external library (scikit-fuzzy) is needed — everything is implemented with plain numpy
+so that no new dependency is required.
 
-نحوه‌ی اجرا:
+How to run:
     python benchmarks/fuzzy_pruning.py --city Eindhoven --seeds 5
     python benchmarks/fuzzy_pruning.py --city Rome --seeds 3
 """
@@ -59,10 +59,10 @@ def log(msg):
 
 
 # ══════════════════════════════════════════════════════════════
-# توابع عضویت فازی مثلثی (Triangular Membership Functions)
+# Fuzzy membership functions (Triangular Membership Functions)
 # ══════════════════════════════════════════════════════════════
 def tri_mf(x, a, b, c):
-    """تابع عضویت مثلثی استاندارد: صفر در a، یک در b، صفر در c."""
+    """Standard triangular membership function: zero at a, one at b, zero at c."""
     x = np.asarray(x, dtype=float)
     left = (x - a) / (b - a + 1e-9)
     right = (c - x) / (c - b + 1e-9)
@@ -83,9 +83,9 @@ def fuzzy_high(x):
 
 def fuzzy_pruning_score(probability, centrality_norm):
     """
-    خروجی: یک عدد بین ۰ (قطعاً هرس کن) تا ۱ (قطعاً نگه‌دار)، با ترکیب
-    ۵ قانون فازی بالا با روش Mamdani + defuzzification (centroid ساده).
-    probability و centrality_norm باید بین ۰ و ۱ نرمال شده باشند.
+    Output: a number between 0 (definitely prune) and 1 (definitely keep), combining
+    the 5 fuzzy rules above with the Mamdani method + defuzzification (simple centroid).
+    probability and centrality_norm must be normalized to lie between 0 and 1.
     """
     p_low, p_med, p_high = fuzzy_low(probability), fuzzy_medium(probability), fuzzy_high(probability)
     c_low, c_med, c_high = fuzzy_low(centrality_norm), fuzzy_medium(centrality_norm), fuzzy_high(centrality_norm)
@@ -193,10 +193,10 @@ def build_matched_random_mask(G, edge_list, n_removed_target, seed):
 
 def mask_from_score_matched_count(score, n_edges, n_removed_target, edge_list, G):
     """
-    کمترین score اول حذف می‌شود -> تطبیق دقیق تعداد حذف با سایر حالت‌ها.
-    یال‌های bottleneck از ابتدا از فهرست کاندیدها کنار گذاشته می‌شوند
-    (دقیقاً مثل build_matched_random_mask) تا اجبار به نگه‌داشتن آن‌ها
-    باعث انحراف sparsification واقعی از هدف نشود.
+    The lowest score is removed first -> the number of removals exactly matches the other variants.
+    Bottleneck edges are excluded from the candidate list from the start
+    (exactly like build_matched_random_mask) so that forcing them to be kept
+    does not make the real sparsification deviate from the target.
     """
     non_bottleneck_idx = np.array([i for i, (u, v, d) in enumerate(edge_list)
                                     if not ((G.in_degree(v) <= 1) or (G.out_degree(u) <= 1))])
@@ -274,7 +274,7 @@ def run_city(city_label, city_query, base_model, n_seeds, base_threshold=0.40):
         rows.append(_row(city_label, "C_GA_Threshold_plus_Feedback", seed,
                           len(removed_C)/n_edges*100, stretches_C, repairs_C, scc_C))
 
-        # --- D) Random Pruning (هم‌سطح دقیق) ---
+        # --- D) Random Pruning (exactly matched) ---
         mask_D = build_matched_random_mask(G, edge_list, n_target, seed)
         G_final_D, removed_D, repairs_D = build_and_repair(G, edge_list, mask_D)
         stretches_D, scc_D = compute_stretch_and_scc(G, G_final_D, seed=seed)
@@ -303,10 +303,10 @@ def main():
     df.to_csv(OUT_CSV, mode="a", header=write_header, index=False)
 
     print("\n" + "=" * 70)
-    print("خلاصه‌ی میانگین هر Variant (E=Fuzzy, C=GA+Feedback, D=Random):")
+    print("Mean summary per Variant (E=Fuzzy, C=GA+Feedback, D=Random):")
     print(df.groupby("variant")[["sparsification_pct", "max_stretch", "n_repairs"]].mean().to_string())
     print("=" * 70)
-    print(f"\nذخیره شد در: {OUT_CSV}")
+    print(f"\nSaved to: {OUT_CSV}")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torch_geometric.nn import SAGEConv
 
-# ۱. مدل ارتقا یافته با MC-Dropout
+# 1. Upgraded model with MC-Dropout
 class RobustGNN(nn.Module):
     def __init__(self, in_channels=2, hidden_channels=32):
         super().__init__()
@@ -15,23 +15,23 @@ class RobustGNN(nn.Module):
 
     def forward(self, x, edge_idx):
         h = F.relu(self.conv1(x, edge_idx))
-        h = self.dropout(h) # لایه Dropout برای نمونه‌گیری آماری
+        h = self.dropout(h) # Dropout layer for statistical sampling
         return torch.sigmoid(self.classifier(h))
 
-# ۲. تست بصری Uncertainty
+# 2. Visual test of Uncertainty
 def visualize_uncertainty():
     model = RobustGNN()
-    model.train() # بسیار مهم: مدل در حالت train می‌ماند تا dropout فعال باشد
+    model.train() # Very important: the model stays in train mode so that dropout is active
     
     x = torch.randn(100, 2)
     edge_idx = torch.randint(0, 100, (2, 200))
     
-    # نمونه‌گیری مونت‌کارلو (MC-Dropout)
+    # Monte Carlo sampling (MC-Dropout)
     samples = torch.stack([model(x, edge_idx).flatten() for _ in range(50)])
     mean = samples.mean(dim=0).detach().numpy()
     std = samples.std(dim=0).detach().numpy()
     
-    # رسم نمودار بصری برای داور
+    # Draw the visual plot
     plt.figure(figsize=(8, 4))
     plt.hist(std, bins=20, color='purple', alpha=0.7)
     plt.title("Distribution of Model Uncertainty (MC-Dropout)")
@@ -41,7 +41,7 @@ def visualize_uncertainty():
     print("✓ Uncertainty Histogram saved as 'uncertainty_dist.png'")
     print(f"Mean Uncertainty: {std.mean():.4f}")
 
-# ۳. تست Replay Buffer (شکاف ۳)
+# 3. Replay Buffer test (item 3)
 class ContinualTrainer:
     def __init__(self):
         self.buffer = []
@@ -51,7 +51,7 @@ class ContinualTrainer:
         if len(self.buffer) > 200: self.buffer = self.buffer[-200:]
         return len(self.buffer)
 
-# اجرای تست
+# Run the test
 visualize_uncertainty()
 trainer = ContinualTrainer()
 print(f"Replay Buffer Capacity Test: {trainer.update([1]*50)} items stored.")

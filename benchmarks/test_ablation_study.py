@@ -19,7 +19,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FIGURES_DIR = REPO_ROOT / "results" / "figures"
 DEFAULT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
-# وارد کردن تمام اجزای ابر-پروژه شما
+# Import all components from the main module
 from spanner_pipeline import (
     GeometricEdgeSAGE, city_worker, train_base_model, 
     finetune_on_repairs_continual, compute_final_metrics_directed, CITIES,
@@ -33,17 +33,17 @@ def run_ablation_experiment():
     city_query = CITIES[city_key]
     weights_path = DEFAULT_MODEL_PT
     
-    # آموزش مدل پایه برای شروع
+    # Train the base model to start
     model_base = train_base_model(weights_path=weights_path)
     
     ablation_results = []
 
-    # سناریو ۱: مدل کامل (The Full Masterpiece)
+    # Scenario 1: full model
     print("\n[Scenario 1] Running Full Proposed Framework...")
-    # ما از همان توابع اصلی استفاده می‌کنیم چون آن‌ها کامل هستند
+    # We use the same core functions because they are complete
     args = (city_key, city_query, weights_path)
     res_full = city_worker(args)
-    # فین‌تیونینگ با حافظه (Replay Buffer فعلا در همین یک شهر شبیه‌سازی می‌شود)
+    # Fine-tuning with memory (Replay Buffer is simulated on this single city for now)
     model_full, _ = finetune_on_repairs_continual(model_base, [res_full])
     metrics_full = compute_final_metrics_directed(model_full, res_full)
     ablation_results.append({
@@ -53,24 +53,24 @@ def run_ablation_experiment():
         "SCC": metrics_full["SCC"]
     })
 
-    # سناریو ۲: بدون عدم قطعیت (No Uncertainty)
+    # Scenario 2: without uncertainty (No Uncertainty)
     print("\n[Scenario 2] Running without MC-Dropout...")
-    # در این حالت ما MC_SAMPLES را در ذهن مدل ۱ فرض می‌کنیم (تغییر در زمان اجرا)
+    # In this case we assume MC_SAMPLES = 1 for the model (a runtime change)
     import spanner_pipeline
     original_mc = spanner_pipeline.MC_SAMPLES
-    spanner_pipeline.MC_SAMPLES = 1 # خاموش کردن نمونه‌گیری آماری
+    spanner_pipeline.MC_SAMPLES = 1 # turn off statistical sampling
     
     res_no_unc = city_worker(args)
     metrics_no_unc = compute_final_metrics_directed(model_full, res_no_unc)
     ablation_results.append({
-        "Configuration": "w/o MC-Dropout (Gap 9)",
+        "Configuration": "w/o MC-Dropout",
         "Sparsification": metrics_no_unc["Sparsification"],
         "Max Stretch": metrics_no_unc["Max Stretch"],
         "SCC": metrics_no_unc["SCC"]
     })
-    spanner_pipeline.MC_SAMPLES = original_mc # بازگرداندن به حالت قبل
+    spanner_pipeline.MC_SAMPLES = original_mc # restore the previous state
 
-    # سناریو ۳: بدون محافظت گره‌ها (No Safeguards) — اجرای واقعی
+    # Scenario 3: without node safeguards (No Safeguards) — real run
     print("\n[Scenario 3] Running WITHOUT topology safeguard (is_bottleneck disabled)...")
     metrics_no_safeguard = compute_final_metrics_directed(model_full, res_full, disable_safeguard=True)
     ablation_results.append({
@@ -80,7 +80,7 @@ def run_ablation_experiment():
         "SCC": metrics_no_safeguard["SCC"]
     })
 
-    # نمایش جدول نهایی ابطالی
+    # Show the final ablation table
     print("\n" + "="*85)
     print("                FINAL ABLATION STUDY RESULTS")
     print("="*85)
@@ -88,7 +88,7 @@ def run_ablation_experiment():
     print(df.to_string(index=False))
     print("="*85)
     
-    # رسم نمودار مقایسه‌ای ابطالی برای مقاله
+    # Plot the ablation comparison for reporting
     plt.figure(figsize=(10, 5))
     configs = [r["Configuration"] for r in ablation_results[:2]]
     stretches = [float(r["Max Stretch"]) for r in ablation_results[:2]]

@@ -5,15 +5,15 @@ GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
 Status: under active development
 Author: Soheyl Falahzade
 
-نسخه‌ی به‌روزشده: Edge Betweenness Centrality اکنون به‌عنوان یک ویژگی
-واقعی ورودی مدل استفاده می‌شود (طبق معادله‌ی ۲ در مقاله)، نه فقط برای
-وزن‌دهی loss.
+Updated version: Edge Betweenness Centrality is now used as a real model input
+feature (as the edge-feature definition requires), not only for
+weighting the loss.
 ================================================================================
 Scientific Contributions:
-  1. Directed Spanner Construction (Gap 7): Handling one-way road constraints.
+  1. Directed Spanner Construction: Handling one-way road constraints.
   2. Strongly Connected Components (SCC): Ensuring 100% urban reachability.
-  3. MC-Dropout Uncertainty (Gap 9): Probabilistic edge pruning via SAGE-Dropout.
-  4. Continual Learning (Gap 3): Knowledge retention via Replay Buffer.
+  3. MC-Dropout Uncertainty: Probabilistic edge pruning via SAGE-Dropout.
+  4. Continual Learning: Knowledge retention via Replay Buffer.
   5. Batch-Sequential Repair: Solving the "Blind Batch-Pruning" Paradox.
   6. Edge Betweenness Centrality as a genuine model input (not just loss weight).
 ================================================================================
@@ -40,10 +40,10 @@ import scipy.sparse as sp
 from scipy.sparse.csgraph import dijkstra, connected_components
 import matplotlib.pyplot as plt
 
-# مسیرها را نسبت به محل خود فایل حساب می‌کنیم، نه نسبت به پوشه‌ای که
-# اسکریپت از آنجا اجرا می‌شود — قبلاً اگر کسی از پوشه‌ای غیر از ریشهٔ
-# ریپو اجرا می‌کرد، فایل CSV پیدا نمی‌شد و مدل بی‌صدا با وزن‌های خام
-# (تصادفی) جایگزین می‌شد (نقض قانون ۷: قابل بازتولید بودن).
+# Paths are resolved relative to this file's location, not to the folder
+# the script is launched from — previously, if someone ran it from a folder other than the root
+# of the repository, the CSV file was not found and the model was silently replaced by raw
+# (random) weights (violating the reproducibility requirement).
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DATA_CSV = REPO_ROOT / "results" / "data" / "spanner_dataset_pro.csv"
 DEFAULT_MODEL_PT = REPO_ROOT / "results" / "models" / "best_base_model.pt"
@@ -51,7 +51,7 @@ DEFAULT_FIGURES_DIR = REPO_ROOT / "results" / "figures"
 DEFAULT_FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 # ──────────────────────────────────────────────
-# ۰. تنظیمات استراتژیک و هایپرپارامترها
+# 0. Strategic settings and hyperparameters
 # ──────────────────────────────────────────────
 CITIES = {
     "Eindhoven": "Eindhoven, Netherlands",
@@ -60,32 +60,32 @@ CITIES = {
     "Rome":      "Rome, Italy",
 }
 
-NUM_DIJKSTRA_THREADS = 4   # تعداد تردها برای محاسبات موازی دایجسترا
-GLV_T_LIMIT          = 1.5 # حد تئوریک ضریب کشش (t-Spanner)
-FINETUNE_EPOCHS      = 5   # کاهش اپوک‌ها برای جلوگیری از Overwriting مدل (Gap 3)
+NUM_DIJKSTRA_THREADS = 4   # number of threads for the parallel Dijkstra computations
+GLV_T_LIMIT          = 1.5 # theoretical stretch bound (t-Spanner)
+FINETUNE_EPOCHS      = 5   # fewer epochs to avoid overwriting the model
 FINETUNE_LR          = 0.0001
-STRETCH_SAMPLES      = 100000 # نمونه‌برداری عظیم مونت‌کارلو
-GLV_BATCH_SIZE       = 250    # اندازه دسته‌ها در ترمیم ترتیبی
-PRUNING_THRESHOLD    = 0.40   # آستانه بهینه پارتو
-MC_SAMPLES           = 10     # تعداد دفعات استنتاج برای MC-Dropout (Gap 9)
-REPLAY_BUFFER_SIZE   = 5      # تعداد تجربه‌های ذخیره شده از هر شهر (Gap 3)
+STRETCH_SAMPLES      = 100000 # large-scale Monte Carlo sampling
+GLV_BATCH_SIZE       = 250    # batch size of the sequential repair
+PRUNING_THRESHOLD    = 0.40   # Pareto-optimal threshold
+MC_SAMPLES           = 10     # number of inference passes for MC-Dropout
+REPLAY_BUFFER_SIZE   = 5      # number of stored experiences per city
 RANDOM_SEED = 42
 torch.manual_seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 
-CENTRALITY_K_SAMPLES = 80    # تعداد گره‌ی نمونه برای تخمین Edge Betweenness Centrality
+CENTRALITY_K_SAMPLES = 80    # number of sampled nodes for estimating Edge Betweenness Centrality
 
 
 # ──────────────────────────────────────────────
-# ۰.۵ محاسبه‌ی Edge Betweenness Centrality
+# 0.5 Computation of Edge Betweenness Centrality
 # ──────────────────────────────────────────────
 def compute_edge_centrality(G, weight="length", k=CENTRALITY_K_SAMPLES, seed=42):
     """
-    محاسبه‌ی تخمینی Edge Betweenness Centrality با نمونه‌برداری از k گره
-    مبدا (برای گراف‌های بزرگ مثل Rome، محاسبه‌ی دقیق O(V*E) غیرعملی است).
-    این تابع فقط یک‌بار به‌ازای هر شهر باید صدا زده شود (نه به‌ازای هر
-    seed)، چون به مدل یا seed بستگی ندارد.
+    Approximate computation of Edge Betweenness Centrality by sampling k source
+    nodes (for large graphs such as Rome, the exact O(V*E) computation is impractical).
+    This function should be called only once per city (not per
+    seed), because it does not depend on the model or the seed.
     """
     n = G.number_of_nodes()
     k_actual = min(k, n) if k else None
@@ -94,9 +94,9 @@ def compute_edge_centrality(G, weight="length", k=CENTRALITY_K_SAMPLES, seed=42)
 
 def build_edge_features(edge_list, centrality_dict):
     """
-    می‌سازد آرایه‌ی ۲ ستونی نرمال‌شده [length, centrality] برای استفاده
-    به‌عنوان edge_attr در GeometricEdgeSAGE — دقیقاً معادل بخشی از
-    معادله‌ی (۲) در مقاله: [d̄(u,v), ..., C(u,v)]
+    builds a normalized 2-column array [length, centrality] to be used
+    as edge_attr in GeometricEdgeSAGE — exactly equivalent to part of
+    the edge feature definition: [d̄(u,v), ..., C(u,v)]
     """
     raw_ea = []
     for (u, v, d) in edge_list:
@@ -107,13 +107,13 @@ def build_edge_features(edge_list, centrality_dict):
 
 
 # ──────────────────────────────────────────────
-# ۱. معماری مدل عصبی گراف آگاه از عدم قطعیت
+# 1. Architecture of the uncertainty-aware graph neural network
 # ──────────────────────────────────────────────
 class GeometricEdgeSAGE(nn.Module):
     """
-    معماری Edge-based SAGE با لایه Dropout فعال در زمان تست جهت تخمین عدم قطعیت اپیستمیک.
-    ورودی گره: [In-Degree, Out-Degree, PageRank]
-    ورودی یال (edge_attr_dim=2): [Normalized Length, Edge Betweenness Centrality]
+    Edge-based SAGE architecture with Dropout kept active at test time to estimate epistemic uncertainty.
+    Node input: [In-Degree, Out-Degree, PageRank]
+    Edge input (edge_attr_dim=2): [Normalized Length, Edge Betweenness Centrality]
     """
     def __init__(self, in_channels=3, hidden_channels=64, dropout_rate=0.2, edge_attr_dim=2):
         super().__init__()
@@ -125,16 +125,16 @@ class GeometricEdgeSAGE(nn.Module):
         self.classifier = nn.Sequential(
             nn.Linear(hidden_channels * 2 + edge_attr_dim, 64),
             nn.ReLU(),
-            nn.Dropout(p=dropout_rate), # لایه حیاتی برای MC-Sampling (Gap 9)
+            nn.Dropout(p=dropout_rate), # critical layer for MC-Sampling
             nn.Linear(64, 1),
         )
 
     def forward(self, x, edge_index, edge_attr):
-        # لایه‌های کانوولوشنال گراف
+        # Graph convolutional layers
         h = F.relu(self.conv1(x, edge_index))
         h = self.conv2(h, edge_index)
 
-        # ترکیب ویژگی‌های دو سر یال به همراه [طول, centrality]
+        # Combine the features of the two edge endpoints with [length, centrality]
         u, v = edge_index
         edge_repr = torch.cat([h[u], h[v], edge_attr], dim=-1)
         return self.classifier(edge_repr)
@@ -142,7 +142,7 @@ class GeometricEdgeSAGE(nn.Module):
 
 def balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5):
     """
-    تابع هزینه ترکیبی: BCE + جریمه ترمیم هندسی + پاداش هرس هوشمند
+    Combined loss: BCE + geometric repair penalty + smart-pruning reward
     """
     bce     = F.binary_cross_entropy_with_logits(pred_logits, target)
     probs   = torch.sigmoid(pred_logits)
@@ -152,21 +152,21 @@ def balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5):
 
 
 # ──────────────────────────────────────────────
-# ۲. پروتکل آموزش پایه (Full Base Training Loop)
+# 2. Base training protocol (Full Base Training Loop)
 # ──────────────────────────────────────────────
 def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
     print("\n[Base Training] Loading spatial dataset and engineering features...")
 
     if not os.path.exists(csv_path):
         raise FileNotFoundError(
-            f"دیتاست ضروری پیدا نشد: {csv_path}\n"
-            f"این خطا عمداً fatal است (نه فقط هشدار) چون ادامهٔ کار بدون این "
-            f"داده یعنی مدل با وزن‌های تصادفی/خام کار می‌کند و نتایج بی‌معنی "
-            f"تولید می‌شود — طبق قانون ۷ (قابلیت بازتولید)."
+            f"Required dataset not found: {csv_path}\n"
+            f"This error is deliberately fatal (not just a warning) because continuing without this "
+            f"data would run the model with random/raw weights and produce meaningless "
+            f"results (the run must be reproducible)."
         )
 
     df = pd.read_csv(csv_path)
-    # مهندسی ویژگی برای گراف جهت‌دار
+    # Feature engineering for the directed graph
     features = ["length", "u_degree", "v_degree", "edge_centrality", "u_pagerank", "v_pagerank"]
     df[features] = StandardScaler().fit_transform(df[features])
 
@@ -177,16 +177,16 @@ def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
 
     node_feat_map = {}
     for _, row in df.iterrows():
-        # ویژگی‌های ۳تایی برای هر گره
+        # 3-element features for each node
         node_feat_map[node_map[row["node_u"]]] = [row["u_degree"], row["v_degree"], row["u_pagerank"]]
         node_feat_map[node_map[row["node_v"]]] = [row["v_degree"], row["u_degree"], row["v_pagerank"]]
 
     x = torch.tensor([node_feat_map.get(i, [0.0, 0.0, 0.0]) for i in range(len(nodes_unique))], dtype=torch.float)    
     y = torch.tensor(df["is_spanner_edge"].values, dtype=torch.float).view(-1, 1)
 
-    # edge_attr حالا شامل [length, edge_centrality] واقعی است — نه فقط
-    # طول. این دقیقاً همان چیزی است که مقاله در معادله‌ی (۲) ادعا می‌کند.
-    # (df از قبل با StandardScaler نرمال شده، پس مستقیم قابل استفاده است.)
+    # edge_attr now contains the real [length, edge_centrality] — not only
+    # the length. This is exactly what the edge-feature definition requires.
+    # (df already normalized with StandardScaler, so it can be used directly.)
     edge_attr = torch.tensor(df[["length", "edge_centrality"]].values, dtype=torch.float)
 
     importance = torch.tensor(df["edge_centrality"].values, dtype=torch.float).view(-1, 1)
@@ -224,11 +224,11 @@ def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
 
 
 # ──────────────────────────────────────────────
-# ۳. پروتکل ترمیم جهت‌دار و دایجسترا موازی (Gap 7)
-#    نسخه‌ی بهینه‌شده با cutoff واقعی (طبق بخش Systems Engineering مقاله)
+# 3. Directed repair protocol and parallel Dijkstra
+#    optimized version with a true cutoff (cutoff-bounded search)
 # ──────────────────────────────────────────────
 def _check_one_directed_edge(args):
-    """بررسی نیاز به ترمیم یک یال با cutoff-bounded Dijkstra جهت‌دار."""
+    """Check whether one edge needs repair using a directed cutoff-bounded Dijkstra."""
     repaired_G, edge, t_limit = args
     u, v, w = edge["u"], edge["v"], edge["length"]
     cutoff = t_limit * w
@@ -242,8 +242,8 @@ def _check_one_directed_edge(args):
 
 def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
     """
-    ترمیم مستقل مکانی (Spatially Independent Batch Repair) جهت حل باگ بیش‌بازسازی موازی
-    و افزایش نرخ هرس گراف با رعایت قوانین جهت‌دار.
+    Spatially Independent Batch Repair, to fix the parallel over-restoration bug
+    and to increase the pruning rate while respecting directed edge semantics.
     """
     repaired_G = G_sparse.copy()
     repairs = []
@@ -254,7 +254,7 @@ def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
         used_nodes = set()
         remaining_candidates = []
 
-        # انتخاب لبه‌هایی که تداخل گره مکانی با هم ندارند
+        # Select edges that do not share spatial nodes with each other
         for edge in candidates:
             u, v = edge["u"], edge["v"]
             if len(batch) < GLV_BATCH_SIZE and u not in used_nodes and v not in used_nodes:
@@ -282,14 +282,14 @@ def glv_repair_directed(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT):
 
 
 # ──────────────────────────────────────────────
-# ۳.۴۹ رفع باگ یال‌های موازی (Parallel-Edge Summation Bug)
+# 3.49 Fix for parallel edges (Parallel-Edge Summation Bug)
 # ──────────────────────────────────────────────
 def safe_weighted_adjacency(G, nodelist, weight="length"):
     """
-    ماتریس مجاورت وزن‌دار را حتی وقتی G یک MultiDiGraph با یال‌های موازی
-    باشد، درست می‌سازد. nx.adjacency_matrix روی MultiDiGraph وزن یال‌های
-    موازی را جمع می‌کند نه کمینه؛ این تابع کمینه‌ی هر جفت یال موازی را
-    نگه می‌دارد.
+    Builds the weighted adjacency matrix correctly even when G is a MultiDiGraph with parallel
+    edges. nx.adjacency_matrix on a MultiDiGraph sums the weights of parallel
+    edges instead of taking the minimum; this function keeps the minimum of each pair of parallel
+    edges.
     """
     if G.is_multigraph():
         G_simple = nx.DiGraph() if G.is_directed() else nx.Graph()
@@ -303,10 +303,10 @@ def safe_weighted_adjacency(G, nodelist, weight="length"):
 
 
 # ──────────────────────────────────────────────
-# ۳.۵ ارزیابی آماری ۱۰۰,۰۰۰ نمونه‌ای فوق‌سریع SciPy
+# 3.5 Ultra-fast 100,000-sample statistical evaluation in SciPy
 # ──────────────────────────────────────────────
 def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
-    """محاسبه فوق‌سریع ضریب کشش جهت‌دار با کدهای بهینه‌سازی شده C++ در SciPy"""
+    """Ultra-fast computation of the directed stretch with optimized C++ code in SciPy"""
     nodes = list(G_orig.nodes())
     num_nodes = len(nodes)
     if num_nodes < 2: return np.array([1.0])
@@ -320,12 +320,12 @@ def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
     dist_orig = dijkstra(matrix_orig, directed=True, indices=sources)
     dist_span = dijkstra(matrix_final, directed=True, indices=sources)
 
-    # برای محاسبهٔ عدم‌تقارن جهت‌دار واقعی d(u,v) در مقابل d(v,u)، باید
-    # فاصله‌ها را روی ترانهادهٔ (transpose) گراف حساب کنیم -- قبلاً این خط
-    # دوباره روی همان گراف جهت‌دار از همان مبدأ اجرا می‌شد که دقیقاً همان
-    # فاصلهٔ رفت را برمی‌گرداند (تفاوت تقریباً صفر، همیشه)، نه فاصلهٔ برگشت
-    # واقعی. این باعث می‌شد نمودار "اثبات عدم‌تقارن" همیشه نزدیک صفر بیفتد
-    # صرف‌نظر از این‌که گراف واقعاً چقدر نامتقارن است.
+    # To measure the true directed asymmetry d(u,v) versus d(v,u), the
+    # distances must be computed on the transpose of the graph -- previously this line
+    # ran again on the same directed graph from the same source, which returned exactly the same
+    # forward distance (a difference of about zero, always), not the true return distance.
+    # This made the "asymmetry evidence" plot always fall near zero
+    # regardless of how asymmetric the graph really is.
     matrix_final_T = matrix_final.transpose().tocsr()
     dist_span_reverse = dijkstra(matrix_final_T, directed=True, indices=sources)
 
@@ -351,7 +351,7 @@ def compute_global_stretch_scipy(G_orig, G_final, num_samples=STRETCH_SAMPLES):
 
 
 # ──────────────────────────────────────────────
-# ۴. تابع Worker شهر — استخراج SCC، Centrality، و MC-Dropout (Gap 7 & 9)
+# 4. City worker function — SCC extraction, centrality, and MC-Dropout
 # ──────────────────────────────────────────────
 def city_worker(args):
     city_label, city_query, weights_path = args
@@ -399,7 +399,7 @@ def city_worker(args):
     G_sparse.add_nodes_from(G.nodes())
     removed_edges = []
 
-    # ── محافظ زنده در برابر Bottleneck (جایگزین محافظ ثابت قبلی) ──
+    # ── live safeguard against bottlenecks (replaces the earlier static safeguard) ──
     MIN_SAFE_DEGREE = 2
     live_out_degree = dict(G.out_degree())
     live_in_degree = dict(G.in_degree())
@@ -425,10 +425,10 @@ def city_worker(args):
 
 
 # ──────────────────────────────────────────────
-# ۵. یادگیری مداوم با Replay Buffer (Gap 3)
+# 5. Continual learning with Replay Buffer
 # ──────────────────────────────────────────────
 def finetune_on_repairs_continual(model, city_results):
-    print("\n[Main] Starting Continual Learning Fine-Tuning (Gap 3 Active)...")
+    print("\n[Main] Starting Continual Learning Fine-Tuning...")
     optimizer = torch.optim.Adam(model.parameters(), lr=FINETUNE_LR)
 
     replay_buffer = []
@@ -480,7 +480,7 @@ def finetune_on_repairs_continual(model, city_results):
 
 
 # ──────────────────────────────────────────────
-# ۶. استخراج متریک‌های نهایی و اثبات بصری جهت‌داری
+# 6. Final metric extraction and visual evidence of directedness
 # ──────────────────────────────────────────────
 def compute_final_metrics_directed(model, res, disable_safeguard=False):
     label = res["city_label"]
@@ -532,7 +532,7 @@ def compute_final_metrics_directed(model, res, disable_safeguard=False):
 
 
 # ──────────────────────────────────────────────
-# ۷. تابع Main — ارکستر نهایی و رسم نمودارها
+# 7. Main function — final orchestrator and plotting
 # ──────────────────────────────────────────────
 def main():
     mp.set_start_method("spawn", force=True)

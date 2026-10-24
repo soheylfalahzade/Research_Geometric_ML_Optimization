@@ -7,16 +7,16 @@ class ReplayBuffer:
 
     def add_experiences(self, current_city_critical_edges):
         """
-        در هر مرحله، ما بخشی از یال‌های حیاتی (ترمیم شده) شهر فعلی را
-        برای حافظه بلندمدت انتخاب می‌کنیم تا در شهرهای بعدی یادآوری شوند.
+        At each step, we select part of the critical (repaired) edges of the current city
+        for long-term memory so they are remembered in later cities.
         """
-        # انتخاب ۱۰٪ از یال‌های بحرانی برای حافظه
+        # Select 10% of the critical edges for memory
         sample_size = max(1, int(len(current_city_critical_edges) * 0.10))
         selected_samples = np.random.choice(current_city_critical_edges, size=min(sample_size, len(current_city_critical_edges)), replace=False)
         
         self.buffer.extend(selected_samples)
         
-        # حفظ ظرفیت حافظه (الگوریتم FIFO)
+        # Keep the memory capacity bounded (algorithm FIFO)
         if len(self.buffer) > self.capacity:
             self.buffer = self.buffer[-self.capacity:]
             
@@ -26,10 +26,10 @@ class ReplayBuffer:
         return self.buffer
 
 def test_continual_learning_simulation():
-    print("--- Testing Replay Buffer for Continual Learning (Gap 3) ---")
+    print("--- Testing Replay Buffer for Continual Learning ---")
     memory = ReplayBuffer(capacity=500)
     
-    # شبیه‌سازی نتایج ترمیم‌شده در ۴ شهر مختلف
+    # Simulate the repaired results in 4 different cities
     cities_critical_edges = {
         "Manhattan": list(range(0, 180)),        # 180 critical edges
         "Eindhoven": list(range(1000, 1212)),    # 212 critical edges
@@ -37,18 +37,18 @@ def test_continual_learning_simulation():
         "Rome":      list(range(3000, 3962))     # 962 critical edges
     }
 
-    # فاز شبیه‌سازی فین‌تیونینگ (Fine-tuning Loop)
+    # Fine-tuning simulation phase (Fine-tuning Loop)
     for city, edges in cities_critical_edges.items():
         print(f"\nTraining on [{city}] with {len(edges)} current critical edges...")
         
-        # ۱. استخراج حافظه گذشته
+        # 1. Extract the past memory
         past_memory = memory.get_memory()
         
-        # ۲. ترکیب داده‌های شهر فعلی با حافظه شهرهای قبلی
+        # 2. Combine the current city's data with the memory of previous cities
         training_batch_size = len(edges) + len(past_memory)
         print(f"  [Trainer] GNN is fine-tuning on a mixed batch of {training_batch_size} edges (Current: {len(edges)}, Past Memory: {len(past_memory)})")
         
-        # ۳. پس از آموزش، یال‌های این شهر را به حافظه اضافه کن
+        # 3. After training, add this city's edges to the memory
         memory.add_experiences(edges)
 
     print("\n--- Test Completed Successfully ---")

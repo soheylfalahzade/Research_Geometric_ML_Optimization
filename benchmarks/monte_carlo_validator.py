@@ -10,7 +10,7 @@ from scipy.sparse.csgraph import dijkstra
 import pandas as pd
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
-# وارد کردن توابع مورد نیاز از فایل اصلی پروژه
+# Import the required functions from the project's main file
 from spanner_pipeline import (
     DEFAULT_FIGURES_DIR,
     GeometricEdgeSAGE, train_base_model, city_worker,
@@ -19,36 +19,36 @@ from spanner_pipeline import (
 )
 
 def run_monte_carlo_scipy(city_label, G_orig, G_final, num_samples=100000):
-    """محاسبه فوق‌سریع ضریب کشش با استفاده از الگوریتم دایجسترا در SciPy (کدهای C++)"""
+    """Fast stretch computation with Dijkstra's algorithm in SciPy (compiled C++)"""
     print(f"\n[MC - {city_label}] Starting ultra-fast SciPy Monte Carlo ({num_samples} pairs)...")
     t0 = time.time()
     
-    # نگاشت گره‌ها به ایندکس‌های عددی از 0 تا N-1
+    # Map the nodes to integer indices from 0 to N-1
     nodes = list(G_orig.nodes())
     node_to_idx = {node: i for i, node in enumerate(nodes)}
     num_nodes = len(nodes)
     
-    # تبدیل گراف‌های NetworkX به ماتریس اسپرس در SciPy
+    # Convert the NetworkX graphs to sparse matrices in SciPy
     matrix_orig = safe_weighted_adjacency(G_orig, nodelist=nodes, weight='length')
     matrix_final = nx.adjacency_matrix(G_final, nodelist=nodes, weight='length')
     
-    # انتخاب تصادفی گره‌های مبدا
+    # Random selection of source nodes
     rng = np.random.default_rng(42)
-    num_sources = min(num_nodes, 1000)  # انتخاب حداکثر 1000 مبدا تصادفی
+    num_sources = min(num_nodes, 1000)  # Choose at most 1000 random sources
     sources = rng.choice(num_nodes, size=num_sources, replace=False)
     
-    # اجرای محاسبات دایجسترا با کدهای کامپایل‌شده C++ در SciPy
+    # Run the Dijkstra computations with compiled C++ code in SciPy
     print(f"[MC - {city_label}] Running SciPy parallelized Dijkstra for {num_sources} source nodes...")
     dist_orig = dijkstra(matrix_orig, directed=True, indices=sources)
     dist_span = dijkstra(matrix_final, directed=True, indices=sources)
     
-    # استخراج زوج گره‌های معتبر و محاسبه ضریب کشش
+    # Extract the valid node pairs and compute the stretch
     stretches = []
     for i in range(num_sources):
         d_orig_row = dist_orig[i]
         d_span_row = dist_span[i]
         
-        # فیلتر کردن مقادیر نامعتبر (فاصله صفر یا بی‌نهایت)
+        # Filter out invalid values (zero or infinite distance)
         valid_mask = (d_orig_row > 0) & (d_orig_row < np.inf) & (d_span_row < np.inf)
         if not np.any(valid_mask):
             continue
@@ -56,7 +56,7 @@ def run_monte_carlo_scipy(city_label, G_orig, G_final, num_samples=100000):
         ratios = d_span_row[valid_mask] / d_orig_row[valid_mask]
         stretches.extend(ratios.tolist())
         
-    # نمونه‌برداری نهایی برای رسیدن به ۱۰۰,۰۰۰ نمونه
+    # Final sampling to reach 100,000 samples
     if len(stretches) > num_samples:
         stretches = rng.choice(stretches, size=num_samples, replace=False)
         

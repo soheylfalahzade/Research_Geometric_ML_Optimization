@@ -7,26 +7,26 @@ import osmnx as ox
 from sklearn.preprocessing import StandardScaler
 from concurrent.futures import ThreadPoolExecutor
 
-# وارد کردن مدل و توابع پایه‌ای از فایل اصلی
+# Import the model and base functions from the main file
 from spanner_pipeline import GeometricEdgeSAGE, GLV_T_LIMIT, NUM_DIJKSTRA_THREADS, _check_one_directed_edge
 
 def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_size=250):
     """
-    راهکار پیشرفته داور: ترمیم دسته‌ای پویا (Batch-Sequential Repair)
-    یال‌ها را در دسته‌های کوچک‌تر بررسی کرده و با پر کردن گراف، مانع ترمیم‌های تکراری و بیهوده می‌شود.
+    Dynamic batch repair (Batch-Sequential Repair)
+    Examines the edges in smaller batches and, by filling in the graph, prevents repeated and useless repairs.
     """
     repaired_G = G_sparse.copy()
     repairs    = []
 
-    # مرتب‌سازی: کوتاه‌ترین لبه‌ها اول
+    # Sort: shortest edges first
     candidates = sorted(removed_edges_info, key=lambda e: e["length"])
     num_candidates = len(candidates)
     
-    # تقسیم کاندیداها به دسته‌های batch_size تایی
+    # Split the candidates into batches of batch_size
     for start_idx in range(0, num_candidates, batch_size):
         batch = candidates[start_idx : start_idx + batch_size]
         
-        # بررسی موازی اعضای این دسته روی آخرین وضعیت گراف ترمیم‌شده تا این لحظه
+        # Check the members of this batch in parallel against the latest state of the repaired graph so far
         args_list = [(repaired_G, edge, t_limit) for edge in batch]
         batch_needs_repair = {}
         
@@ -34,8 +34,8 @@ def glv_repair_batched(G_sparse, removed_edges_info, t_limit=GLV_T_LIMIT, batch_
             for idx, needs in pool.map(_check_one_directed_edge, args_list):
                 batch_needs_repair[idx] = needs
                 
-        # اعمالِ sequential و بلادرنگ یال‌های بحرانی این دسته به گراف
-        # این کار باعث می‌شود در دسته‌های بعدی، این یال‌ها به عنوان مسیرهای جایگزین دیده شوند.
+        # Apply the critical edges of this batch to the graph sequentially, in real time
+        # This makes these edges visible as alternative paths in later batches.
         for edge in batch:
             if batch_needs_repair.get(edge["idx"], False):
                 repaired_G.add_edge(edge["u"], edge["v"], length=edge["length"])
@@ -47,23 +47,23 @@ def test_single_city_diamond(city_label="Eindhoven", city_query="Eindhoven, Neth
     print(f"\n--- Testing Diamond Solution on [{city_label}] ---")
     weights_path = 'best_base_model.pt'
     
-    # بارگذاری مدل
+    # Load the model
     model = GeometricEdgeSAGE()
     model.load_state_dict(torch.load(weights_path, weights_only=True, map_location="cpu"))
     model.eval()
     
-    # دانلود گراف
+    # Download the graph
     print(f"[{city_label}] Downloading OSM graph...")
     G = ox.graph_from_place(city_query, network_type="drive")
     G = ox.project_graph(G).to_undirected()
     
-    # ۱. راهکار علمی اول داور: شناسایی و قفل کردن پل‌ها (Bridges)
+    # 1. Identify and lock the bridges
     print(f"[{city_label}] Identifying topological bridges (O(V+E) time)...")
     t_start_bridges = time.time()
     bridges = {tuple(sorted((u, v))) for u, v in nx.bridges(G)}
     print(f"[{city_label}] Found {len(bridges)} critical bridge edges in {time.time() - t_start_bridges:.2f}s.")
     
-    # استخراج ویژگی‌ها و استنتاج مدل
+    # Extract the features and run the model inference
     pagerank  = nx.pagerank(G, weight="length")
     edge_list = list(G.edges(keys=True, data=True))
     node_map  = {n: i for i, n in enumerate(G.nodes())}
@@ -87,7 +87,7 @@ def test_single_city_diamond(city_label="Eindhoven", city_query="Eindhoven, Neth
         edge_key = tuple(sorted((u, v)))
         is_bridge = edge_key in bridges
         
-        # اگر یال خروجی مدل بالایی دارد، یا یک "پل" است، آن را قفل کرده و هرگز هرس نمی‌کنیم
+        # If the model output for an edge is high, or it is a "bridge", it is locked and never pruned
         if probs[i] > 0.55 or is_bridge:
             G_sparse.add_edge(u, v, length=d["length"])
         else:
@@ -95,13 +95,13 @@ def test_single_city_diamond(city_label="Eindhoven", city_query="Eindhoven, Neth
                 "u": u, "v": v, "length": d["length"], "prob": probs[i], "idx": i
             })
             
-    # ۲. اعمال ترمیم دسته‌ای موازی-ترتیبی
+    # 2. Apply the parallel-sequential batch repair
     print(f"[{city_label}] Running Batch-Sequential GLV-Repair ({len(removed_edges)} candidates)...")
     t0 = time.time()
     G_final, repairs = glv_repair_batched(G_sparse, removed_edges, batch_size=250)
     elapsed = time.time() - t0
     
-    # محاسبه متریک‌ها با استفاده از SciPy دایجسترا فوق‌سریع روی ۱۰۰,۰۰۰ نمونه تصادفی
+    # Compute the metrics with ultra-fast SciPy Dijkstra on 100,000 random samples
     from spanner_pipeline import compute_global_stretch_scipy
     print(f"[{city_label}] Computing high-precision global stretch (10^5 pairs)...")
     stretches = compute_global_stretch_scipy(G, G_final, num_samples=100000)
