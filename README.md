@@ -2,7 +2,7 @@
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg) ![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue.svg) ![PyTorch](https://img.shields.io/badge/PyTorch-Geometric-orange.svg) ![Seeds: 5](https://img.shields.io/badge/Seeds-5%20per%20city-lightgrey.svg)
 
-**Author:** Soheyl Falahzade — M.Sc. Student, Algorithms & Computational Geometry, Yazd University
+**Author:** Soheil Falahzade — M.Sc. Student, Algorithms & Computational Geometry, Yazd University
 
 > This README tracks the current state of the project's own scripts. Every number below comes from a real CSV file in `results/raw_runs/` — nothing is estimated or hand-written for presentation.
 

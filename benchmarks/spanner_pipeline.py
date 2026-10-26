@@ -3,7 +3,7 @@
 GEOSPATIAL GRAPH OPTIMIZER — Directed Neural-Algorithmic Spanner Pipeline
 ================================================================================
 Status: under active development
-Author: Soheyl Falahzade
+Author: Soheil Falahzade
 
 Updated version: Edge Betweenness Centrality is now used as a real model input
 feature (as the edge-feature definition requires), not only for
