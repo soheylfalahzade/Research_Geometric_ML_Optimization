@@ -2,7 +2,7 @@
 ablation_and_baseline.py (version 2 — with true Edge Betweenness Centrality)
 =============================================================================
 The same 4 variants as before (Full Proposed / No MC-Dropout / Non-GA Threshold /
-Random Pruning Baseline), this time with the true centrality feature in the model.
+Random Pruning Baseline with the same number of removed edges as the full model), this time with the true centrality feature in the model.
 
 How to run:
     python benchmarks/ablation_and_baseline.py --city Eindhoven --seeds 5
@@ -23,6 +23,7 @@ from sklearn.preprocessing import StandardScaler
 from scipy.sparse.csgraph import dijkstra, connected_components
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from matched_random import apply_degree_safeguard, matched_random_removed  # noqa: E402
 from spanner_pipeline import (  # noqa: E402
     GeometricEdgeSAGE, glv_repair_directed, compute_edge_centrality, build_edge_features,
     CITIES, MC_SAMPLES, GLV_T_LIMIT, safe_weighted_adjacency
@@ -83,23 +84,22 @@ def compute_stretch_and_scc(G_orig, G_final, seed=42, num_sources=500):
     return stretches, n_scc
 
 
-def build_and_repair(G, edge_list, keep_mask, t_limit=GLV_T_LIMIT):
+def repair_from_removed(G, edge_list, removed_mask, t_limit=GLV_T_LIMIT):
     G_sparse = nx.DiGraph()
     G_sparse.add_nodes_from(G.nodes())
     removed = []
-    MIN_SAFE_DEGREE = 2
-    live_out_degree = dict(G.out_degree())
-    live_in_degree = dict(G.in_degree())
     for i, (u, v, d) in enumerate(edge_list):
-        is_bottleneck = (live_in_degree[v] <= MIN_SAFE_DEGREE) or (live_out_degree[u] <= MIN_SAFE_DEGREE)
-        if keep_mask[i] or is_bottleneck:
-            G_sparse.add_edge(u, v, length=d["length"])
-        else:
+        if removed_mask[i]:
             removed.append({"u": u, "v": v, "length": d["length"], "idx": i})
-            live_out_degree[u] -= 1
-            live_in_degree[v] -= 1
+        else:
+            G_sparse.add_edge(u, v, length=d["length"])
     G_final, repairs = glv_repair_directed(G_sparse, removed, t_limit=t_limit)
-    return G_final, repairs
+    return G_final, repairs, int(removed_mask.sum())
+
+
+def build_and_repair(G, edge_list, keep_mask, t_limit=GLV_T_LIMIT):
+    """Degree safeguard (index order), then repair. Returns (final graph, repairs, number of edges actually removed)."""
+    return repair_from_removed(G, edge_list, apply_degree_safeguard(G, edge_list, keep_mask), t_limit)
 
 
 def variant_full_proposed(model, x_local, edge_idx, edge_attr_loc, threshold, seed):
@@ -127,12 +127,6 @@ def variant_random_threshold(model, x_local, edge_idx, edge_attr_loc, seed, bad_
     return variant_full_proposed(model, x_local, edge_idx, edge_attr_loc, bad_threshold, seed)
 
 
-def variant_random_pruning_baseline(edge_list, target_keep_fraction, seed):
-    rng = np.random.default_rng(seed)
-    n = len(edge_list)
-    return rng.random(n) < target_keep_fraction
-
-
 def run_all_variants(city_label, city_query, model, threshold, n_seeds):
     log(f"\n{'='*60}\n{city_label}\n{'='*60}")
     G = load_city_scc(city_query)
@@ -143,7 +137,7 @@ def run_all_variants(city_label, city_query, model, threshold, n_seeds):
     rows = []
     for seed in range(n_seeds):
         mask = variant_full_proposed(model, x_local, edge_idx, edge_attr_loc, threshold, seed)
-        G_final, repairs = build_and_repair(G, edge_list, mask)
+        G_final, repairs, n_rem = build_and_repair(G, edge_list, mask)
         stretches, scc = compute_stretch_and_scc(G, G_final, seed=seed)
         keep_fraction = mask.mean()
         rows.append({
@@ -154,7 +148,7 @@ def run_all_variants(city_label, city_query, model, threshold, n_seeds):
         })
 
         mask_nomc = variant_no_mc_dropout(model, x_local, edge_idx, edge_attr_loc, threshold, seed)
-        G_final2, repairs2 = build_and_repair(G, edge_list, mask_nomc)
+        G_final2, repairs2, n_rem2 = build_and_repair(G, edge_list, mask_nomc)
         stretches2, scc2 = compute_stretch_and_scc(G, G_final2, seed=seed)
         rows.append({
             "city": city_label, "variant": "Ablation_No_MC_Dropout", "seed": seed,
@@ -164,7 +158,7 @@ def run_all_variants(city_label, city_query, model, threshold, n_seeds):
         })
 
         mask_rt = variant_random_threshold(model, x_local, edge_idx, edge_attr_loc, seed)
-        G_final3, repairs3 = build_and_repair(G, edge_list, mask_rt)
+        G_final3, repairs3, n_rem3 = build_and_repair(G, edge_list, mask_rt)
         stretches3, scc3 = compute_stretch_and_scc(G, G_final3, seed=seed)
         rows.append({
             "city": city_label, "variant": "Ablation_Non_GA_Threshold(0.50)", "seed": seed,
@@ -173,16 +167,22 @@ def run_all_variants(city_label, city_query, model, threshold, n_seeds):
             "scc_connected": scc3 == 1,
         })
 
-        mask_rand = variant_random_pruning_baseline(edge_list, keep_fraction, seed)
-        G_final4, repairs4 = build_and_repair(G, edge_list, mask_rand)
+        removed_rand = matched_random_removed(G, edge_list, n_rem, seed)
+        G_final4, repairs4, n_rem4 = repair_from_removed(G, edge_list, removed_rand)
         stretches4, scc4 = compute_stretch_and_scc(G, G_final4, seed=seed)
         rows.append({
-            "city": city_label, "variant": "Baseline_Random_Pruning(matched_sparsity)", "seed": seed,
-            "sparsification_pct": (1 - mask_rand.mean()) * 100,
+            "city": city_label, "variant": "Baseline_Random_Pruning(matched_removed_count)", "seed": seed,
+            "sparsification_pct": (1 - (~removed_rand).mean()) * 100,
             "max_stretch": float(np.max(stretches4)), "n_repairs": len(repairs4),
             "scc_connected": scc4 == 1,
         })
+        if n_rem4 != n_rem:
+            log(f"  WARNING seed={seed}: random baseline removed {n_rem4} edges, target {n_rem}")
 
+        for row, nr in zip(rows[-4:], (n_rem, n_rem2, n_rem3, n_rem4)):
+            row["n_edges"] = n_edges
+            row["n_removed"] = nr
+            row["removed_pct"] = nr / n_edges * 100
         log(f"  seed={seed}: Full={rows[-4]['max_stretch']:.3f} (repairs={rows[-4]['n_repairs']}) | "
             f"NoMC={rows[-3]['max_stretch']:.3f} (repairs={rows[-3]['n_repairs']}) | "
             f"RandThresh={rows[-2]['max_stretch']:.3f} (repairs={rows[-2]['n_repairs']}) | "
@@ -209,7 +209,7 @@ def main():
 
     print("\n" + "=" * 70)
     print("Mean summary per Variant:")
-    print(df.groupby("variant")[["sparsification_pct", "max_stretch", "n_repairs"]].mean().to_string())
+    print(df.groupby("variant")[["removed_pct", "sparsification_pct", "max_stretch", "n_repairs"]].mean().to_string())
     print("=" * 70)
     print(f"\nSaved to: {OUT_CSV}")
 
