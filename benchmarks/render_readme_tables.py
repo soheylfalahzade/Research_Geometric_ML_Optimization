@@ -16,6 +16,7 @@ Sources
     stretch      results/raw_runs/mc_validator_final.log
     loco         results/raw_runs/leave_one_city_out_results.csv
     kfold        results/raw_runs/stratified_kfold_results.csv
+    ablation     newest results/raw_runs/ablation_baseline_*.csv per city, runs from 2026-08-29 on
 """
 import argparse
 import glob
@@ -49,10 +50,15 @@ def table_speedup():
                      f"{r.gnn_time_mean_sec:.3f} \u00b1 {r.gnn_time_std_sec:.3f}", f"**{r.speedup_mean:.2f}x**",
                      f"{r.gnn_sparsification_mean_pct:.2f}%", f"{r.gnn_max_stretch_worst:.4f}",
                      "yes" if r.gnn_scc_all_connected else "no"])
+    over = df[df.gnn_max_stretch_worst > 1.5]
+    stretch_note = ("" if over.empty else
+                    f" The worst stretch is the maximum over sampled source nodes and exceeds 1.5 in {len(over)} of {len(df)} cities "
+                    f"({', '.join(f'{r.city}: {r.gnn_max_stretch_worst:.2f}' for _, r in over.iterrows())}); the repair guarantee is local, "
+                    f"see Limitations.")
     note = (f"\nSource: `results/raw_runs/{os.path.basename(path)}` (mean over {int(df.gnn_n_seeds.iloc[0])} seeds; "
             f"\u00b1 is the standard deviation of the construction time). "
             f"Sparsification is the fraction of edges removed in the final graph; the speedup is obtained at a modest "
-            f"sparsification level. The classic greedy baseline is measured once per city.")
+            f"sparsification level. The classic greedy baseline is measured once per city." + stretch_note)
     head = ["City", "Nodes", "Edges", "Greedy time (s)", "Our time (s)", "Speedup", "Edges removed",
             "Worst stretch", "Strongly connected"]
     return md(head, rows) + note
@@ -151,9 +157,47 @@ def table_glance():
     ]
     return md(["Quantity", "Result"], rows)
 
+ABLATION_FROM = "20260829"  # runs after the live-degree safeguard and the parallel-edge fix
+ABL_LABELS = [("Full_Proposed", "Full model (MC-Dropout + GA threshold + centrality)"),
+              ("Ablation_No_MC_Dropout", "No MC-Dropout"),
+              ("Ablation_Non_GA_Threshold", "Untuned threshold 0.50"),
+              ("Baseline_Random_Pruning", "Random pruning, Bernoulli keep")]
+
+
+def load_ablation():
+    newest = {}
+    for path in sorted(glob.glob(os.path.join(RAW, "ablation_baseline_*.csv"))):
+        stamp = re.search(r"ablation_baseline_(\d{8})_", path).group(1)
+        if stamp < ABLATION_FROM:
+            continue
+        df = pd.read_csv(path)
+        df["variant"] = df.variant.str.split("(").str[0].str.strip()
+        newest[df.city.iloc[0]] = (path, df)  # sorted by name, so the newest file per city wins
+    assert newest, "no ablation file from the final pipeline"
+    return newest
+
+
+def table_ablation():
+    newest = load_ablation()
+    rows, wins = [], []
+    for city in [c for c in CITY_ORDER if c in newest]:
+        df = newest[city][1]
+        for key, label in ABL_LABELS:
+            sub = df[df.variant == key]
+            rows.append([city, label, len(sub), f"{sub.sparsification_pct.mean():.2f} \u00b1 {sub.sparsification_pct.std():.2f}",
+                         f"{sub.n_repairs.mean():.1f} \u00b1 {sub.n_repairs.std():.1f}"])
+        piv = df.pivot_table(index="seed", columns="variant", values="n_repairs")
+        wins.append(f"{city} {int((piv['Full_Proposed'] < piv['Baseline_Random_Pruning']).sum())}/{len(piv)}")
+    files = ", ".join(f"`{os.path.basename(newest[c][0])}`" for c in CITY_ORDER if c in newest)
+    return (md(["City", "Variant", "Seeds", "Mask sparsification before safeguard (%)", "Repairs"], rows) +
+            "\n\nRepairs are counted after pruning (lower is better); values are mean \u00b1 standard deviation over seeds. "
+            "Seeds in which the full model needed fewer repairs than random pruning: " + "; ".join(wins) + ". "
+            "No significance test is reported: with 5 paired seeds the smallest possible two-sided Wilcoxon p-value is 0.0625. "
+            "Sources: " + files + ".")
+
 
 RENDERERS = {"glance": table_glance, "speedup": table_speedup, "pruning": table_pruning, "stretch": table_stretch,
-             "loco": table_loco, "kfold": table_kfold}
+             "loco": table_loco, "kfold": table_kfold, "ablation": table_ablation}
 
 
 def render(readme_text):

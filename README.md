@@ -34,7 +34,7 @@ Exact greedy $t$-spanner construction costs $O(m\,(n + m \log n))$, which is slo
 <!-- BEGIN:glance -->
 | Quantity | Result |
 | --- | --- |
-| Construction speed-up over classic greedy | 6.7x to 42.5x on 4 cities (4,540 to 42,788 nodes) |
+| Construction speed-up over classic greedy | 7.6x to 34.6x on 4 cities (4,540 to 42,846 nodes) |
 | Strong connectivity | preserved in every benchmark run |
 | Pairs above the stretch bound, in-distribution (10⁵ per city) | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0110% |
 | Pairs above the stretch bound, leave-one-city-out | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0040% |
@@ -68,11 +68,11 @@ The fuzzy decision uses two normalized inputs, calibrated model probability $p$ 
 <!-- BEGIN:speedup -->
 | City | Nodes | Edges | Greedy time (s) | Our time (s) | Speedup | Edges removed | Worst stretch | Strongly connected |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Manhattan | 4,540 | 9,766 | 0.742 | 0.110 ± 0.044 | **6.74x** | 0.50% | 1.4971 | yes |
-| Eindhoven | 7,881 | 19,051 | 1.948 | 0.206 ± 0.054 | **9.45x** | 4.18% | 1.4970 | yes |
-| Paris | 9,236 | 17,891 | 3.256 | 0.193 ± 0.064 | **16.89x** | 0.80% | 1.4989 | yes |
-| Rome | 42,788 | 88,618 | 46.626 | 1.097 ± 0.154 | **42.51x** | 1.92% | 1.4941 | yes |
-Source: `results/raw_runs/full_benchmark_20260706_144626.csv` (mean over 5 seeds; ± is the standard deviation of the construction time). Sparsification is the fraction of edges removed in the final graph; the speedup is obtained at a modest sparsification level. The classic greedy baseline is measured once per city.
+| Manhattan | 4,540 | 9,756 | 0.850 | 0.112 ± 0.014 | **7.56x** | 0.24% | 1.4971 | yes |
+| Eindhoven | 7,896 | 19,087 | 1.955 | 0.207 ± 0.013 | **9.43x** | 3.05% | 24.3820 | yes |
+| Paris | 9,230 | 17,872 | 2.944 | 0.253 ± 0.063 | **11.65x** | 0.58% | 2.0195 | yes |
+| Rome | 42,846 | 88,650 | 49.509 | 1.429 ± 0.069 | **34.65x** | 1.22% | 13.1275 | yes |
+Source: `results/raw_runs/full_benchmark_20261029_083345.csv` (mean over 5 seeds; ± is the standard deviation of the construction time). Sparsification is the fraction of edges removed in the final graph; the speedup is obtained at a modest sparsification level. The classic greedy baseline is measured once per city. The worst stretch is the maximum over sampled source nodes and exceeds 1.5 in 3 of 4 cities (Eindhoven: 24.38, Paris: 2.02, Rome: 13.13); the repair guarantee is local, see Limitations.
 <!-- END:speedup -->
 
 ### Comparison of three pruning-decision mechanisms
@@ -156,6 +156,33 @@ Mean stretch is above 1 in every held-out city, as it must be for a spanner subg
 
 The asymmetry plot shows mean $|d(u,v) - d(v,u)|$ per city, computed on the transposed adjacency matrix. The continual-learning loss is current-city loss plus $0.5\times$ replay-buffer loss; Rome shows a temporary increase between epochs 4 and 5, plausible given the small replay buffer and short schedule, but not confirmed across multiple seeds.
 
+### Ablation and random-pruning baseline
+
+<!-- BEGIN:ablation -->
+| City | Variant | Seeds | Mask sparsification before safeguard (%) | Repairs |
+| --- | --- | --- | --- | --- |
+| Manhattan | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.02 ± 0.05 | 338.4 ± 4.7 |
+| Manhattan | No MC-Dropout | 5 | 7.16 ± 0.00 | 380.0 ± 0.0 |
+| Manhattan | Untuned threshold 0.50 | 5 | 14.92 ± 0.05 | 492.2 ± 4.1 |
+| Manhattan | Random pruning, Bernoulli keep | 5 | 6.22 ± 0.26 | 148.0 ± 8.6 |
+| Eindhoven | Full model (MC-Dropout + GA threshold + centrality) | 5 | 4.67 ± 0.05 | 379.8 ± 3.6 |
+| Eindhoven | No MC-Dropout | 5 | 5.50 ± 0.00 | 435.0 ± 0.0 |
+| Eindhoven | Untuned threshold 0.50 | 5 | 10.58 ± 0.04 | 703.0 ± 4.3 |
+| Eindhoven | Random pruning, Bernoulli keep | 5 | 4.65 ± 0.05 | 429.6 ± 15.1 |
+| Paris | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.11 ± 0.07 | 429.8 ± 1.9 |
+| Paris | No MC-Dropout | 5 | 7.30 ± 0.00 | 476.0 ± 0.0 |
+| Paris | Untuned threshold 0.50 | 5 | 15.61 ± 0.08 | 614.8 ± 5.8 |
+| Paris | Random pruning, Bernoulli keep | 5 | 6.18 ± 0.14 | 147.4 ± 10.6 |
+| Rome | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.20 ± 0.03 | 2597.6 ± 15.5 |
+| Rome | No MC-Dropout | 5 | 7.13 ± 0.00 | 2905.0 ± 0.0 |
+| Rome | Untuned threshold 0.50 | 5 | 11.81 ± 0.01 | 3846.0 ± 5.8 |
+| Rome | Random pruning, Bernoulli keep | 5 | 6.21 ± 0.05 | 1554.4 ± 29.7 |
+
+Repairs are counted after pruning (lower is better); values are mean ± standard deviation over seeds. Seeds in which the full model needed fewer repairs than random pruning: Manhattan 0/5; Eindhoven 5/5; Paris 0/5; Rome 0/5. No significance test is reported: with 5 paired seeds the smallest possible two-sided Wilcoxon p-value is 0.0625. Sources: `ablation_baseline_20261029_083837.csv`, `ablation_baseline_20261029_083801.csv`, `ablation_baseline_20261029_083858.csv`, `ablation_baseline_20261029_083940.csv`.
+<!-- END:ablation -->
+
+How to read this table: the random baseline keeps each edge independently with the full model's keep fraction, and the degree safeguard in the repair stage can force some of those removals back, so the number of edges actually removed need not be equal across variants and is not recorded in the CSV. The repair counts are therefore **not comparable across variants at equal sparsification**. In three of four cities this baseline needed fewer repairs than the full model, which contradicts the exact-count comparison in the pruning-mechanism section above (where the random variant needed more). The two experiments use different random masks and different safeguard thresholds; the discrepancy has not been resolved, and the ablation is not used to support any claim about the learned model.
+
 ### Edge-classifier cross-validation (supplementary)
 
 Stratified 5-fold cross-validation of the edge classifier on the synthetic training set (about 89/11 class imbalance). Because edges share nodes, neighbouring edges can appear in both a training and a test fold, so this estimate is optimistic and is **not** used to support any generalization claim.
@@ -163,12 +190,12 @@ Stratified 5-fold cross-validation of the edge classifier on the synthetic train
 <!-- BEGIN:kfold -->
 | Fold | AUC | F1 | Precision | Recall |
 | --- | --- | --- | --- | --- |
-| 1 | 0.7260 | 0.8780 | 0.9346 | 0.8279 |
-| 2 | 0.7135 | 0.8628 | 0.9343 | 0.8015 |
-| 3 | 0.7024 | 0.8756 | 0.9307 | 0.8267 |
-| 4 | 0.7133 | 0.8780 | 0.9311 | 0.8306 |
-| 5 | 0.7271 | 0.8748 | 0.9356 | 0.8215 |
-| **mean ± std** | **0.7164 ± 0.0103** | **0.8739 ± 0.0063** | **0.9333 ± 0.0022** | **0.8216 ± 0.0117** |
+| 1 | 0.7254 | 0.8748 | 0.9349 | 0.8219 |
+| 2 | 0.7119 | 0.8631 | 0.9340 | 0.8022 |
+| 3 | 0.7037 | 0.8772 | 0.9305 | 0.8296 |
+| 4 | 0.7163 | 0.8963 | 0.9288 | 0.8660 |
+| 5 | 0.7212 | 0.8900 | 0.9321 | 0.8516 |
+| **mean ± std** | **0.7157 ± 0.0084** | **0.8803 ± 0.0131** | **0.9320 ± 0.0025** | **0.8343 ± 0.0250** |
 
 Source: `results/raw_runs/stratified_kfold_results.csv`.
 <!-- END:kfold -->
@@ -177,7 +204,7 @@ Source: `results/raw_runs/stratified_kfold_results.csv`.
 
 - **The repair guarantee is local.** The repair check verifies, for each removed edge, that its own endpoints remain within $t$ times that edge's original length. It does not check arbitrary source-destination pairs, and independently repaired regions can compound into a longer detour for a few unrelated pairs. In Eindhoven this appears as a small nonzero violation rate (in-distribution and leave-one-city-out). Classic greedy construction bounds every pair provably. Whether a global guarantee is required, and which repair would provide it, is an open design question.
 - **Scale.** Zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges) the output was valid (mean stretch 1.0010, maximum 1.3493, no violation over 218.8 million sampled pairs, byte-identical on a repeated run, see `results/raw_runs/tokyo_scale_test_verified.log`), but only 0.09% of edges (755) were pruned, so there is essentially no sparsification benefit at that scale. The edge-centrality feature and threshold were calibrated on graphs about two orders of magnitude smaller; retraining or recalibration on 400,000+ node cities has not been done.
-- **Ablation.** The committed ablation file holds 12 runs (Rome, 3 seeds, 4 variants) from before the later pipeline fixes, and in it sparsity-matched random pruning needed fewer repairs than the full model. It is therefore not reported as a result; it will be re-run on all four cities with the current pipeline.
+- **Ablation.** Re-run on all four cities with 5 seeds (see the ablation section). Its random baseline is not matched on the number of removed edges, it needed fewer repairs than the full model in three of four cities, and this conflicts with the exact-count pruning comparison. No claim rests on it until the baseline is rebuilt with exact-count matching and the discrepancy is explained.
 - **Cities and seeds.** Four cities support a directional generalization claim, not a definitive one; leave-one-city-out has one run per fold.
 
 ## Methodology notes
@@ -229,9 +256,9 @@ Raw result files and when they were produced (the live-degree safeguard and the 
 | Stretch verification | `mc_validator_final.log` | 2026-08-29 | final pipeline |
 | Leave-one-city-out | `leave_one_city_out_results.csv` | 2026-10-23 | final pipeline, one run per fold |
 | Pruning-mechanism comparison | `fuzzy_pruning_rebuilt.csv` | 2026-08-24 | rebuilt after the sign correction |
-| Speed benchmark | `full_benchmark_20260706_144626.csv` | 2026-08-16 (run 2026-07-06) | earlier than the final fixes |
-| Edge-classifier cross-validation | `stratified_kfold_results.csv` | 2026-08-23 | supplementary |
-| Ablation | `ablation_baseline_20260704_201825.csv` | 2026-07-05 | 12 runs only, see Limitations |
+| Speed benchmark | `full_benchmark_20261029_083345.csv` | 2026-10-29 | 5 seeds; model retrained inside the run; city graphs re-downloaded from OpenStreetMap, so sizes differ slightly from the 2026-07-06 run |
+| Edge-classifier cross-validation | `stratified_kfold_results.csv` | 2026-10-29 | supplementary; edge-level folds leak, see above |
+| Ablation | `ablation_baseline_20261029_*.csv` (one per city) | 2026-10-29 | 5 seeds, 4 cities; baseline not exact-count matched, see Limitations |
 | GA versus random search | `adaptive_ga_feedback_20260705_021416.csv` | 2026-07-05 | basis of the negative result in the Summary |
 
 Seeds and random-number settings are fixed in the scripts; the MC-Dropout seed is pinned for the scale test.
@@ -247,7 +274,7 @@ This repository is one component of a connected research program on emergency-aw
 | [`delay-bounded-spanner-networks`](https://github.com/soheylfalahzade/delay-bounded-spanner-networks) | Directed road graphs with hourly speed profiles | Same problem under a time-varying delay constraint | Certified: an edge-wise certificate implies the all-pairs, all-hours bound (Theorem 1); congestion model is parametric, not fitted to telemetry |
 | [`anti-gridlock-signal-control`](https://github.com/soheylfalahzade/anti-gridlock-signal-control) | Signalized intersection and a three-junction corridor (SUMO) | Local control layer beneath a future network layer | Empirical (10 paired seeds per evaluation); no closed-loop stability proof |
 
-Integration of the local control layer with the network layer is planned and has not been demonstrated. Open items per repository: the OpenStreetMap experiments in the lab repository use node coordinates only; this repository does not transfer to Tokyo scale and its ablation is pending; the delay-bounded repository uses a parametric congestion field; the signal-control repository tests hand-set membership functions on at most three junctions.
+Integration of the local control layer with the network layer is planned and has not been demonstrated. Open items per repository: the OpenStreetMap experiments in the lab repository use node coordinates only; this repository does not transfer to Tokyo scale and its ablation baseline is not exact-count matched; the delay-bounded repository uses a parametric congestion field; the signal-control repository tests hand-set membership functions on at most three junctions.
 
 ## Quickstart
 
