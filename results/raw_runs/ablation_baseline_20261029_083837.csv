@@ -1,0 +1,21 @@
+city,variant,seed,sparsification_pct,max_stretch,n_repairs,scc_connected
+Manhattan,Full_Proposed (MC-Dropout + GA-threshold + Centrality),0,5.955309553095534,1.4022525550108047,340,True
+Manhattan,Ablation_No_MC_Dropout,0,7.1648216482164795,1.4022525550108047,380,True
+Manhattan,Ablation_Non_GA_Threshold(0.50),0,14.852398523985244,1.3315348915928942,490,True
+Manhattan,Baseline_Random_Pruning(matched_sparsity),0,5.934809348093484,1.32020772496797,137,True
+Manhattan,Full_Proposed (MC-Dropout + GA-threshold + Centrality),1,6.078310783107832,1.4970903168236736,343,True
+Manhattan,Ablation_No_MC_Dropout,1,7.1648216482164795,1.4970903168236736,380,True
+Manhattan,Ablation_Non_GA_Threshold(0.50),1,14.903649036490362,1.4970903168236736,495,True
+Manhattan,Baseline_Random_Pruning(matched_sparsity),1,6.590815908159087,1.436180304788121,159,True
+Manhattan,Full_Proposed (MC-Dropout + GA-threshold + Centrality),2,6.006560065600652,1.431302622419977,337,True
+Manhattan,Ablation_No_MC_Dropout,2,7.1648216482164795,1.431302622419977,380,True
+Manhattan,Ablation_Non_GA_Threshold(0.50),2,14.965149651496512,1.32020772496797,494,True
+Manhattan,Baseline_Random_Pruning(matched_sparsity),2,6.016810168101683,1.431302622419977,144,True
+Manhattan,Full_Proposed (MC-Dropout + GA-threshold + Centrality),3,6.068060680606802,1.3232043483017435,331,True
+Manhattan,Ablation_No_MC_Dropout,3,7.1648216482164795,1.3232043483017435,380,True
+Manhattan,Ablation_Non_GA_Threshold(0.50),3,14.893398933989344,1.178605678751299,486,True
+Manhattan,Baseline_Random_Pruning(matched_sparsity),3,6.25256252562526,1.3883973811273562,154,True
+Manhattan,Full_Proposed (MC-Dropout + GA-threshold + Centrality),4,5.975809758097583,1.4336373849782358,341,True
+Manhattan,Ablation_No_MC_Dropout,4,7.1648216482164795,1.4336373849782358,380,True
+Manhattan,Ablation_Non_GA_Threshold(0.50),4,14.985649856498561,1.4336373849782358,496,True
+Manhattan,Baseline_Random_Pruning(matched_sparsity),4,6.29356293562936,1.2544715619384663,146,True

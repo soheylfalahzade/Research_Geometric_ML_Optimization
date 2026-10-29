@@ -1,0 +1,21 @@
+city,variant,seed,sparsification_pct,max_stretch,n_repairs,scc_connected
+Eindhoven,Full_Proposed (MC-Dropout + GA-threshold + Centrality),0,4.615707025724314,15.520145839729159,377,True
+Eindhoven,Ablation_No_MC_Dropout,0,5.495887253104204,15.520145839729159,435,True
+Eindhoven,Ablation_Non_GA_Threshold(0.50),0,10.619793576780012,15.520145839729159,705,True
+Eindhoven,Baseline_Random_Pruning(matched_sparsity),0,4.678577041965736,15.520145839729159,447,True
+Eindhoven,Full_Proposed (MC-Dropout + GA-threshold + Centrality),1,4.730968722166917,24.382009073619805,380,True
+Eindhoven,Ablation_No_MC_Dropout,1,5.495887253104204,24.382009073619805,435,True
+Eindhoven,Ablation_Non_GA_Threshold(0.50),1,10.604076072719648,24.382009073619805,708,True
+Eindhoven,Baseline_Random_Pruning(matched_sparsity),1,4.699533714046211,24.382009073619805,443,True
+Eindhoven,Full_Proposed (MC-Dropout + GA-threshold + Centrality),2,4.605228689684083,7.944532563876964,378,True
+Eindhoven,Ablation_No_MC_Dropout,2,5.495887253104204,7.944532563876964,435,True
+Eindhoven,Ablation_Non_GA_Threshold(0.50),2,10.598836904699539,7.944532563876964,705,True
+Eindhoven,Baseline_Random_Pruning(matched_sparsity),2,4.668098705925495,7.944532563876964,419,True
+Eindhoven,Full_Proposed (MC-Dropout + GA-threshold + Centrality),3,4.699533714046211,8.399756653036958,378,True
+Eindhoven,Ablation_No_MC_Dropout,3,5.495887253104204,8.399756653036958,435,True
+Eindhoven,Ablation_Non_GA_Threshold(0.50),3,10.535966888458114,8.399756653036958,698,True
+Eindhoven,Baseline_Random_Pruning(matched_sparsity),3,4.615707025724314,8.399756653036958,412,True
+Eindhoven,Full_Proposed (MC-Dropout + GA-threshold + Centrality),4,4.6890553780059685,6.863473944634427,386,True
+Eindhoven,Ablation_No_MC_Dropout,4,5.495887253104204,6.863473944634427,435,True
+Eindhoven,Ablation_Non_GA_Threshold(0.50),4,10.541206056478236,6.863473944634427,699,True
+Eindhoven,Baseline_Random_Pruning(matched_sparsity),4,4.589511185623718,6.863473944634427,427,True
