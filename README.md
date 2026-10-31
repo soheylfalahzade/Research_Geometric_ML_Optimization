@@ -37,7 +37,7 @@ Exact greedy $t$-spanner construction costs $O(m\,(n + m \log n))$, which is slo
 | Construction speed-up over classic greedy | 7.6x to 34.6x on 4 cities (4,540 to 42,846 nodes) |
 | Strong connectivity | preserved in every benchmark run |
 | Pairs above the stretch bound, in-distribution (10⁵ per city) | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0110% |
-| Pairs above the stretch bound, leave-one-city-out | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0040% |
+| Pairs above the stretch bound, leave-one-city-out fine-tuning (base model saw all four cities) | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0040% |
 | Pruning decision, fewest repairs | GA-tuned threshold with feedback (C), then fuzzy (E), then random (D), in every paired seed |
 <!-- END:glance -->
 
@@ -126,9 +126,9 @@ The calibrated threshold with feedback (C) needs the fewest repairs, the fuzzy r
   <img src="results/figures/global_stretch_cdf.png" alt="Combined empirical CDF of directed stretch" width="62%">
 </p>
 
-### Zero-shot generalization: leave-one-city-out
+### Leave-one-city-out fine-tuning (the base model saw all four cities)
 
-The model is fine-tuned on three cities and evaluated on the fourth, rotating over all four. Entire cities are held out, which avoids the leakage inherent in edge-level cross-validation, so this is the primary generalization test.
+The model is fine-tuned on the repair feedback of three cities and evaluated on the fourth, rotating over all four. **This is not a test on an unseen city.** The base model was trained on `results/data/spanner_dataset_pro.csv`, which contains the greedy-spanner labels of all four cities, so the held-out city's edges were seen in base training; only the fine-tuning step excluded it. The table below is kept as a record of that protocol. `benchmarks/loco_strict.py` trains the base model without the held-out city (and fine-tunes only on the other cities' feedback, over several seeds); its results will replace this section once the run is complete.
 
 <!-- BEGIN:loco -->
 | Held-out city | Fine-tuned on | Mean stretch | Median | 99th percentile | Max | Violation rate (> 1.5) |
@@ -141,7 +141,7 @@ The model is fine-tuned on three cities and evaluated on the fourth, rotating ov
 One fine-tuning run per fold, 10⁵ sampled pairs on the held-out city. Source: `results/raw_runs/leave_one_city_out_results.csv`.
 <!-- END:loco -->
 
-Mean stretch is above 1 in every held-out city, as it must be for a spanner subgraph. No statistical comparison with cities seen during fine-tuning was made, so no claim of equivalence is made.
+Mean stretch is above 1 in every held-out city, as it must be for a spanner subgraph. These numbers must not be read as generalization to unseen cities (see above).
 
 <p align="center">
   <img src="results/figures/leave_one_city_out_cdf.png" alt="Leave-one-city-out stretch CDF" width="72%">
@@ -205,7 +205,7 @@ Source: `results/raw_runs/stratified_kfold_results.csv`.
 - **The repair guarantee is local.** The repair check verifies, for each removed edge, that its own endpoints remain within $t$ times that edge's original length. It does not check arbitrary source-destination pairs, and independently repaired regions can compound into a longer detour for a few unrelated pairs. In Eindhoven this appears as a small nonzero violation rate (in-distribution and leave-one-city-out). Classic greedy construction bounds every pair provably. Whether a global guarantee is required, and which repair would provide it, is an open design question.
 - **Scale.** Zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges) the output was valid (mean stretch 1.0010, maximum 1.3493, no violation over 218.8 million sampled pairs, byte-identical on a repeated run, see `results/raw_runs/tokyo_scale_test_verified.log`), but only 0.09% of edges (755) were pruned, so there is essentially no sparsification benefit at that scale. The edge-centrality feature and threshold were calibrated on graphs about two orders of magnitude smaller; retraining or recalibration on 400,000+ node cities has not been done.
 - **Ablation.** Four cities, 5 seeds each, committed weights. Only the comparison with the random baseline that is matched on removed edges is interpretable; the other two variants remove more edges. No significance test is reported (5 seeds per city, shared graph and model within a city). The earlier unmatched run points the other way and is not used; the cause of the difference is not established.
-- **Cities and seeds.** Four cities support a directional generalization claim, not a definitive one; leave-one-city-out has one run per fold.
+- **Cities and seeds.** Four cities. The existing leave-one-city-out table is fine-tuning only (the base model saw all four cities), so the only unseen-city evidence is the Tokyo run; the strict protocol (`benchmarks/loco_strict.py`, base model trained without the held-out city, several seeds) has not been run yet.
 
 ## Methodology notes
 

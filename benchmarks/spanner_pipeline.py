@@ -39,6 +39,7 @@ from sklearn.preprocessing import StandardScaler
 import scipy.sparse as sp
 from scipy.sparse.csgraph import dijkstra, connected_components
 import matplotlib.pyplot as plt
+from loco_utils import filter_training_frame
 
 # Paths are resolved relative to this file's location, not to the folder
 # the script is launched from — previously, if someone ran it from a folder other than the root
@@ -154,7 +155,7 @@ def balanced_loss(pred_logits, target, importance, lambda_p=2.0, alpha_s=0.5):
 # ──────────────────────────────────────────────
 # 2. Base training protocol (Full Base Training Loop)
 # ──────────────────────────────────────────────
-def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
+def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT, exclude_city=None):
     print("\n[Base Training] Loading spatial dataset and engineering features...")
 
     if not os.path.exists(csv_path):
@@ -165,7 +166,7 @@ def train_base_model(csv_path=DEFAULT_DATA_CSV, weights_path=DEFAULT_MODEL_PT):
             f"results (the run must be reproducible)."
         )
 
-    df = pd.read_csv(csv_path)
+    df = filter_training_frame(pd.read_csv(csv_path), exclude_city)  # exclude_city=None keeps every row
     # Feature engineering for the directed graph
     features = ["length", "u_degree", "v_degree", "edge_centrality", "u_pagerank", "v_pagerank"]
     df[features] = StandardScaler().fit_transform(df[features])

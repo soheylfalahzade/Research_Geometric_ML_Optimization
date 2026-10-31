@@ -151,7 +151,7 @@ def table_glance():
                                                       f"({int(bench.num_nodes.min()):,} to {int(bench.num_nodes.max()):,} nodes)"],
         ["Strong connectivity", "preserved in every benchmark run" if bench.gnn_scc_all_connected.all() else "not preserved in every run"],
         ["Pairs above the stretch bound, in-distribution (10\u2075 per city)", viol(mc_rows, 0, 5)],
-        ["Pairs above the stretch bound, leave-one-city-out", viol([(r["Held-out City"], r["Violation Rate (>1.5)"]) for _, r in loco.iterrows()], 0, 1)],
+        ["Pairs above the stretch bound, leave-one-city-out fine-tuning (base model saw all four cities)", viol([(r["Held-out City"], r["Violation Rate (>1.5)"]) for _, r in loco.iterrows()], 0, 1)],
         ["Pruning decision, fewest repairs", "GA-tuned threshold with feedback (C), then fuzzy (E), then random (D), in every paired seed" if ordered
          else "ordering C < E < D does not hold in every seed"],
     ]

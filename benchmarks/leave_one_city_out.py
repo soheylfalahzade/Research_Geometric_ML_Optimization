@@ -16,7 +16,7 @@ from spanner_pipeline import (
 from monte_carlo_validator import run_monte_carlo_scipy
 
 
-def evaluate_city_with_model(model, res):
+def evaluate_city_with_model(model, res, num_samples=100000):
     model.eval()
     with torch.no_grad():
         probs = torch.sigmoid(
@@ -35,7 +35,7 @@ def evaluate_city_with_model(model, res):
             removed.append({'u': u, 'v': v, 'length': d['length'], 'prob': probs[i], 'idx': i})
 
     G_final, _ = glv_repair_directed(G_opt, removed)
-    stretches = run_monte_carlo_scipy(res["city_label"], G, G_final, num_samples=100000)
+    stretches = run_monte_carlo_scipy(res["city_label"], G, G_final, num_samples=num_samples)
     return stretches
 
 
