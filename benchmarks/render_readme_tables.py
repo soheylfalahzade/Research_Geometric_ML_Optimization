@@ -16,7 +16,7 @@ Sources
     stretch      results/raw_runs/mc_validator_final.log
     loco         results/raw_runs/leave_one_city_out_results.csv
     kfold        results/raw_runs/stratified_kfold_results.csv
-    ablation     newest results/raw_runs/ablation_baseline_*.csv per city, runs from 2026-08-29 on
+    ablation     newest results/raw_runs/ablation_baseline_*.csv per city that has an n_removed column
 """
 import argparse
 import glob
@@ -157,42 +157,50 @@ def table_glance():
     ]
     return md(["Quantity", "Result"], rows)
 
-ABLATION_FROM = "20260829"  # runs after the live-degree safeguard and the parallel-edge fix
 ABL_LABELS = [("Full_Proposed", "Full model (MC-Dropout + GA threshold + centrality)"),
               ("Ablation_No_MC_Dropout", "No MC-Dropout"),
               ("Ablation_Non_GA_Threshold", "Untuned threshold 0.50"),
-              ("Baseline_Random_Pruning", "Random pruning, Bernoulli keep")]
+              ("Baseline_Random_Pruning", "Random pruning, same number of removed edges")]
 
 
 def load_ablation():
+    """Newest file per city that records n_removed (earlier runs have no such column: unmatched baseline, retrained weights)."""
     newest = {}
     for path in sorted(glob.glob(os.path.join(RAW, "ablation_baseline_*.csv"))):
-        stamp = re.search(r"ablation_baseline_(\d{8})_", path).group(1)
-        if stamp < ABLATION_FROM:
-            continue
         df = pd.read_csv(path)
+        if "n_removed" not in df.columns:
+            continue
         df["variant"] = df.variant.str.split("(").str[0].str.strip()
         newest[df.city.iloc[0]] = (path, df)  # sorted by name, so the newest file per city wins
-    assert newest, "no ablation file from the final pipeline"
+    assert newest, "no ablation file with n_removed"
     return newest
 
 
 def table_ablation():
     newest = load_ablation()
-    rows, wins = [], []
+    rows, pairs, per_city = [], [], []
     for city in [c for c in CITY_ORDER if c in newest]:
         df = newest[city][1]
         for key, label in ABL_LABELS:
             sub = df[df.variant == key]
-            rows.append([city, label, len(sub), f"{sub.sparsification_pct.mean():.2f} \u00b1 {sub.sparsification_pct.std():.2f}",
-                         f"{sub.n_repairs.mean():.1f} \u00b1 {sub.n_repairs.std():.1f}"])
+            rate = sub.n_repairs / sub.n_removed
+            rows.append([city, label, len(sub), f"{sub.removed_pct.mean():.2f} \u00b1 {sub.removed_pct.std():.2f}",
+                         f"{sub.n_repairs.mean():.1f} \u00b1 {sub.n_repairs.std():.1f}", f"{rate.mean():.3f} \u00b1 {rate.std():.3f}"])
         piv = df.pivot_table(index="seed", columns="variant", values="n_repairs")
-        wins.append(f"{city} {int((piv['Full_Proposed'] < piv['Baseline_Random_Pruning']).sum())}/{len(piv)}")
+        rem = df.pivot_table(index="seed", columns="variant", values="n_removed")
+        assert (rem["Full_Proposed"] == rem["Baseline_Random_Pruning"]).all(), f"{city}: random baseline is not matched on removed edges"
+        d = piv["Baseline_Random_Pruning"] - piv["Full_Proposed"]
+        pairs.append(((d > 0).sum(), len(d)))
+        per_city.append(f"{city} {int((d > 0).sum())}/{len(d)} (mean difference {d.mean():.1f})")
+    k, n = sum(p[0] for p in pairs), sum(p[1] for p in pairs)
     files = ", ".join(f"`{os.path.basename(newest[c][0])}`" for c in CITY_ORDER if c in newest)
-    return (md(["City", "Variant", "Seeds", "Mask sparsification before safeguard (%)", "Repairs"], rows) +
-            "\n\nRepairs are counted after pruning (lower is better); values are mean \u00b1 standard deviation over seeds. "
-            "Seeds in which the full model needed fewer repairs than random pruning: " + "; ".join(wins) + ". "
-            "No significance test is reported: with 5 paired seeds the smallest possible two-sided Wilcoxon p-value is 0.0625. "
+    return (md(["City", "Variant", "Seeds", "Edges removed before repair (% of edges)", "Repairs", "Repairs per removed edge"], rows) +
+            "\n\nValues are mean \u00b1 standard deviation over seeds; repairs are counted after pruning (lower is better). "
+            f"Random pruning removes exactly as many edges as the full model removed in the same seed, under the same degree safeguard. "
+            f"The full model needed fewer repairs than this baseline in {k} of {n} city-seed pairs (by city: " + "; ".join(per_city) +
+            "; difference = random minus full). The other two variants remove more edges than the full model, so their repair counts are "
+            "not directly comparable; the last column is a rate, not a test. "
+            "No significance test is reported: there are 5 seeds per city, and the seeds of one city share the graph and the trained model. "
             "Sources: " + files + ".")
 
 

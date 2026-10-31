@@ -159,29 +159,29 @@ The asymmetry plot shows mean $|d(u,v) - d(v,u)|$ per city, computed on the tran
 ### Ablation and random-pruning baseline
 
 <!-- BEGIN:ablation -->
-| City | Variant | Seeds | Mask sparsification before safeguard (%) | Repairs |
-| --- | --- | --- | --- | --- |
-| Manhattan | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.02 ± 0.05 | 338.4 ± 4.7 |
-| Manhattan | No MC-Dropout | 5 | 7.16 ± 0.00 | 380.0 ± 0.0 |
-| Manhattan | Untuned threshold 0.50 | 5 | 14.92 ± 0.05 | 492.2 ± 4.1 |
-| Manhattan | Random pruning, Bernoulli keep | 5 | 6.22 ± 0.26 | 148.0 ± 8.6 |
-| Eindhoven | Full model (MC-Dropout + GA threshold + centrality) | 5 | 4.67 ± 0.05 | 379.8 ± 3.6 |
-| Eindhoven | No MC-Dropout | 5 | 5.50 ± 0.00 | 435.0 ± 0.0 |
-| Eindhoven | Untuned threshold 0.50 | 5 | 10.58 ± 0.04 | 703.0 ± 4.3 |
-| Eindhoven | Random pruning, Bernoulli keep | 5 | 4.65 ± 0.05 | 429.6 ± 15.1 |
-| Paris | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.11 ± 0.07 | 429.8 ± 1.9 |
-| Paris | No MC-Dropout | 5 | 7.30 ± 0.00 | 476.0 ± 0.0 |
-| Paris | Untuned threshold 0.50 | 5 | 15.61 ± 0.08 | 614.8 ± 5.8 |
-| Paris | Random pruning, Bernoulli keep | 5 | 6.18 ± 0.14 | 147.4 ± 10.6 |
-| Rome | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.20 ± 0.03 | 2597.6 ± 15.5 |
-| Rome | No MC-Dropout | 5 | 7.13 ± 0.00 | 2905.0 ± 0.0 |
-| Rome | Untuned threshold 0.50 | 5 | 11.81 ± 0.01 | 3846.0 ± 5.8 |
-| Rome | Random pruning, Bernoulli keep | 5 | 6.21 ± 0.05 | 1554.4 ± 29.7 |
+| City | Variant | Seeds | Edges removed before repair (% of edges) | Repairs | Repairs per removed edge |
+| --- | --- | --- | --- | --- | --- |
+| Manhattan | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.00 ± 0.04 | 562.4 ± 4.6 | 0.960 ± 0.002 |
+| Manhattan | No MC-Dropout | 5 | 6.46 ± 0.00 | 606.0 ± 0.0 | 0.962 ± 0.000 |
+| Manhattan | Untuned threshold 0.50 | 5 | 7.88 ± 0.06 | 745.4 ± 6.1 | 0.969 ± 0.001 |
+| Manhattan | Random pruning, same number of removed edges | 5 | 6.00 ± 0.04 | 573.2 ± 2.4 | 0.979 ± 0.007 |
+| Eindhoven | Full model (MC-Dropout + GA threshold + centrality) | 5 | 6.02 ± 0.02 | 771.8 ± 7.8 | 0.671 ± 0.004 |
+| Eindhoven | No MC-Dropout | 5 | 6.77 ± 0.00 | 885.0 ± 0.0 | 0.684 ± 0.000 |
+| Eindhoven | Untuned threshold 0.50 | 5 | 9.92 ± 0.02 | 1369.0 ± 5.1 | 0.723 ± 0.002 |
+| Eindhoven | Random pruning, same number of removed edges | 5 | 6.02 ± 0.02 | 1023.2 ± 12.9 | 0.890 ± 0.010 |
+| Paris | Full model (MC-Dropout + GA threshold + centrality) | 5 | 4.49 ± 0.01 | 736.4 ± 2.1 | 0.918 ± 0.001 |
+| Paris | No MC-Dropout | 5 | 4.82 ± 0.00 | 794.0 ± 0.0 | 0.921 ± 0.000 |
+| Paris | Untuned threshold 0.50 | 5 | 5.62 ± 0.03 | 931.6 ± 6.5 | 0.928 ± 0.001 |
+| Paris | Random pruning, same number of removed edges | 5 | 4.49 ± 0.01 | 760.0 ± 4.1 | 0.947 ± 0.004 |
+| Rome | Full model (MC-Dropout + GA threshold + centrality) | 5 | 5.47 ± 0.01 | 3997.6 ± 14.4 | 0.824 ± 0.001 |
+| Rome | No MC-Dropout | 5 | 6.04 ± 0.00 | 4476.0 ± 0.0 | 0.836 ± 0.000 |
+| Rome | Untuned threshold 0.50 | 5 | 7.97 ± 0.01 | 6123.8 ± 3.6 | 0.867 ± 0.001 |
+| Rome | Random pruning, same number of removed edges | 5 | 5.47 ± 0.01 | 4456.4 ± 22.4 | 0.919 ± 0.003 |
 
-Repairs are counted after pruning (lower is better); values are mean ± standard deviation over seeds. Seeds in which the full model needed fewer repairs than random pruning: Manhattan 0/5; Eindhoven 5/5; Paris 0/5; Rome 0/5. No significance test is reported: with 5 paired seeds the smallest possible two-sided Wilcoxon p-value is 0.0625. Sources: `ablation_baseline_20261029_083837.csv`, `ablation_baseline_20261029_083801.csv`, `ablation_baseline_20261029_083858.csv`, `ablation_baseline_20261029_083940.csv`.
+Values are mean ± standard deviation over seeds; repairs are counted after pruning (lower is better). Random pruning removes exactly as many edges as the full model removed in the same seed, under the same degree safeguard. The full model needed fewer repairs than this baseline in 20 of 20 city-seed pairs (by city: Manhattan 5/5 (mean difference 10.8); Eindhoven 5/5 (mean difference 251.4); Paris 5/5 (mean difference 23.6); Rome 5/5 (mean difference 458.8); difference = random minus full). The other two variants remove more edges than the full model, so their repair counts are not directly comparable; the last column is a rate, not a test. No significance test is reported: there are 5 seeds per city, and the seeds of one city share the graph and the trained model. Sources: `ablation_baseline_20261029_154726.csv`, `ablation_baseline_20261029_154648.csv`, `ablation_baseline_20261029_154751.csv`, `ablation_baseline_20261029_154835.csv`.
 <!-- END:ablation -->
 
-How to read this table: the random baseline keeps each edge independently with the full model's keep fraction, and the degree safeguard in the repair stage can force some of those removals back, so the number of edges actually removed need not be equal across variants and is not recorded in the CSV. The repair counts are therefore **not comparable across variants at equal sparsification**. In three of four cities this baseline needed fewer repairs than the full model, which contradicts the exact-count comparison in the pruning-mechanism section above (where the random variant needed more). The two experiments use different random masks and different safeguard thresholds; the discrepancy has not been resolved, and the ablation is not used to support any claim about the learned model.
+How to read this table: the random baseline removes exactly as many edges as the full model removed in the same seed, under the same degree safeguard, so the repair counts of these two are comparable. The other two variants prune with the model but remove more edges, so their repair counts are not comparable. This run used the committed base-model weights (SHA-256 prefix `d772f259`). An earlier run (files `ablation_baseline_20261029_0838*` and `_083940`) used weights retrained inside the speed benchmark and a baseline that was not matched on the number of removed edges; in three of its four cities random pruning needed fewer repairs than the full model, the opposite of the present result. Both things changed at once, so which one explains the difference is not established. Those files stay in `results/raw_runs/` and are not used by any table.
 
 ### Edge-classifier cross-validation (supplementary)
 
@@ -204,7 +204,7 @@ Source: `results/raw_runs/stratified_kfold_results.csv`.
 
 - **The repair guarantee is local.** The repair check verifies, for each removed edge, that its own endpoints remain within $t$ times that edge's original length. It does not check arbitrary source-destination pairs, and independently repaired regions can compound into a longer detour for a few unrelated pairs. In Eindhoven this appears as a small nonzero violation rate (in-distribution and leave-one-city-out). Classic greedy construction bounds every pair provably. Whether a global guarantee is required, and which repair would provide it, is an open design question.
 - **Scale.** Zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges) the output was valid (mean stretch 1.0010, maximum 1.3493, no violation over 218.8 million sampled pairs, byte-identical on a repeated run, see `results/raw_runs/tokyo_scale_test_verified.log`), but only 0.09% of edges (755) were pruned, so there is essentially no sparsification benefit at that scale. The edge-centrality feature and threshold were calibrated on graphs about two orders of magnitude smaller; retraining or recalibration on 400,000+ node cities has not been done.
-- **Ablation.** Re-run on all four cities with 5 seeds (see the ablation section). Its random baseline is not matched on the number of removed edges, it needed fewer repairs than the full model in three of four cities, and this conflicts with the exact-count pruning comparison. No claim rests on it until the baseline is rebuilt with exact-count matching and the discrepancy is explained.
+- **Ablation.** Four cities, 5 seeds each, committed weights. Only the comparison with the random baseline that is matched on removed edges is interpretable; the other two variants remove more edges. No significance test is reported (5 seeds per city, shared graph and model within a city). The earlier unmatched run points the other way and is not used; the cause of the difference is not established.
 - **Cities and seeds.** Four cities support a directional generalization claim, not a definitive one; leave-one-city-out has one run per fold.
 
 ## Methodology notes
@@ -258,7 +258,7 @@ Raw result files and when they were produced (the live-degree safeguard and the 
 | Pruning-mechanism comparison | `fuzzy_pruning_rebuilt.csv` | 2026-08-24 | rebuilt after the sign correction |
 | Speed benchmark | `full_benchmark_20261029_083345.csv` | 2026-10-29 | 5 seeds; model retrained inside the run; city graphs re-downloaded from OpenStreetMap, so sizes differ slightly from the 2026-07-06 run |
 | Edge-classifier cross-validation | `stratified_kfold_results.csv` | 2026-10-29 | supplementary; edge-level folds leak, see above |
-| Ablation | `ablation_baseline_20261029_*.csv` (one per city) | 2026-10-29 | 5 seeds, 4 cities; baseline not exact-count matched, see Limitations |
+| Ablation | `ablation_baseline_20261029_1546*.csv` to `_154835.csv` (one per city) | 2026-10-29 | 5 seeds, 4 cities; committed weights; random baseline matched on removed-edge count |
 | GA versus random search | `adaptive_ga_feedback_20260705_021416.csv` | 2026-07-05 | basis of the negative result in the Summary |
 
 Seeds and random-number settings are fixed in the scripts; the MC-Dropout seed is pinned for the scale test.
@@ -274,7 +274,7 @@ This repository is one component of a connected research program on emergency-aw
 | [`delay-bounded-spanner-networks`](https://github.com/soheylfalahzade/delay-bounded-spanner-networks) | Directed road graphs with hourly speed profiles | Same problem under a time-varying delay constraint | Certified: an edge-wise certificate implies the all-pairs, all-hours bound (Theorem 1); congestion model is parametric, not fitted to telemetry (its hourly shape was compared with measured speeds on two sensor graphs only) |
 | [`anti-gridlock-signal-control`](https://github.com/soheylfalahzade/anti-gridlock-signal-control) | Signalized intersection and a three-junction corridor (SUMO) | Local control layer beneath a future network layer | Empirical (10 paired seeds per evaluation); no closed-loop stability proof |
 
-Integration of the local control layer with the network layer is planned and has not been demonstrated. Open items per repository: the OpenStreetMap experiments in the lab repository use node coordinates only; the learned-pruning repository does not transfer to Tokyo scale (0.09% of edges pruned) and its ablation baseline is not exact-count matched; the delay-bounded repository uses a parametric congestion field, compared with measured speeds only on two sensor graphs; the signal-control repository tests hand-set membership functions on at most three junctions.
+Integration of the local control layer with the network layer is planned and has not been demonstrated. Open items per repository: the OpenStreetMap experiments in the lab repository use node coordinates only; the learned-pruning repository does not transfer to Tokyo scale (0.09% of edges pruned); the delay-bounded repository uses a parametric congestion field, compared with measured speeds only on two sensor graphs; the signal-control repository tests hand-set membership functions on at most three junctions.
 
 ## Quickstart
 
