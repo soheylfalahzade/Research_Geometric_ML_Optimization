@@ -16,6 +16,7 @@ Sources
     stretch      results/raw_runs/mc_validator_final.log
     loco         results/raw_runs/leave_one_city_out_results.csv
     kfold        results/raw_runs/stratified_kfold_results.csv
+    loco_strict  results/raw_runs/leave_one_city_out_strict.csv
     ablation     newest results/raw_runs/ablation_baseline_*.csv per city that has an n_removed column
 """
 import argparse
@@ -27,6 +28,8 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy import stats
+
+from loco_utils import summarize_strict
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 RAW = os.path.join(ROOT, "results", "raw_runs")
@@ -138,7 +141,6 @@ def table_glance():
     bench = pd.read_csv(sorted(glob.glob(os.path.join(RAW, "full_benchmark_*.csv")))[-1])
     mc = open(os.path.join(RAW, "mc_validator_final.log"), encoding="utf-8").read().split("MONTE CARLO STRETCH VALIDATION METRICS")[-1]
     mc_rows = [m.groups() for m in (re.match(r"\s*([A-Za-z]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)%\s*$", l) for l in mc.splitlines()) if m]
-    loco = pd.read_csv(os.path.join(RAW, "leave_one_city_out_results.csv"), dtype=str)
     prune = pd.read_csv(os.path.join(RAW, "fuzzy_pruning_rebuilt.csv")).pivot_table(index=["city", "seed"], columns="variant", values="n_repairs")
     ordered = bool(((prune[VARIANTS["C"]] < prune[VARIANTS["E"]]) & (prune[VARIANTS["E"]] < prune[VARIANTS["D"]])).all())
 
@@ -151,7 +153,7 @@ def table_glance():
                                                       f"({int(bench.num_nodes.min()):,} to {int(bench.num_nodes.max()):,} nodes)"],
         ["Strong connectivity", "preserved in every benchmark run" if bench.gnn_scc_all_connected.all() else "not preserved in every run"],
         ["Pairs above the stretch bound, in-distribution (10\u2075 per city)", viol(mc_rows, 0, 5)],
-        ["Pairs above the stretch bound, leave-one-city-out fine-tuning (base model saw all four cities)", viol([(r["Held-out City"], r["Violation Rate (>1.5)"]) for _, r in loco.iterrows()], 0, 1)],
+        ["Pairs above the stretch bound, leave-one-city-out (base model trained without the held-out city)", loco_strict_glance()],
         ["Pruning decision, fewest repairs", "GA-tuned threshold with feedback (C), then fuzzy (E), then random (D), in every paired seed" if ordered
          else "ordering C < E < D does not hold in every seed"],
     ]
@@ -204,8 +206,42 @@ def table_ablation():
             "Sources: " + files + ".")
 
 
+def _strict():
+    path = os.path.join(RAW, "leave_one_city_out_strict.csv")
+    df = pd.read_csv(path)
+    assert df.base_excludes_held_out.all(), "a row of the strict run was not trained without its held-out city"
+    assert df.n_pairs.nunique() == 1, "strict runs used different numbers of sampled pairs"
+    return path, df, summarize_strict(df).set_index("held_out")
+
+
+def loco_strict_glance():
+    _, df, s = _strict()
+    cities = [c for c in CITY_ORDER if c in s.index]
+    clean = [c for c in cities if s.loc[c, "max_violation_pct"] == 0]
+    bad = [c for c in cities if c not in clean]
+    return (f"none above 1.5 in {len(clean)} of {len(cities)} cities in any seed" +
+            ("; " + ", ".join(f"{c}: {s.loc[c, 'mean_violation_pct']:.4f}% on average over {int(s.loc[c, 'n_seeds'])} seeds" for c in bad) if bad else ""))
+
+
+def table_loco_strict():
+    path, df, s = _strict()
+    cities = [c for c in CITY_ORDER if c in s.index]
+    rows = [[c, int(s.loc[c, "n_seeds"]), f"{s.loc[c, 'mean_of_mean']:.4f} \u00b1 {s.loc[c, 'std_of_mean']:.4f}",
+             f"{s.loc[c, 'worst_max']:.4f}", f"{s.loc[c, 'mean_violation_pct']:.4f}% (largest in one seed {s.loc[c, 'max_violation_pct']:.4f}%)"]
+            for c in cities]
+    legacy = pd.read_csv(os.path.join(RAW, "leave_one_city_out_results.csv"), dtype=str).set_index("Held-out City")
+    diff = {c: abs(s.loc[c, "mean_of_mean"] - float(legacy.loc[c, "Mean Stretch"])) for c in cities if c in legacy.index}
+    worst_city = max(diff, key=diff.get)
+    return (md(["Held-out city", "Seeds", "Mean stretch (mean \u00b1 sd over seeds)", "Worst max stretch over seeds",
+                "Violation rate (> 1.5)"], rows) +
+            f"\n\nBase model trained without the held-out city; fine-tuned on the other cities only; {int(df.n_pairs.iloc[0]):,} sampled pairs per run. "
+            f"Compared with the earlier table (base model had seen the held-out city), the mean stretch of a city differs by at most "
+            f"{diff[worst_city]:.4f} ({worst_city}). The seeds change the base-model initialization and the fine-tuning order; "
+            f"no significance test is reported. Source: `{os.path.relpath(path, ROOT)}`.")
+
+
 RENDERERS = {"glance": table_glance, "speedup": table_speedup, "pruning": table_pruning, "stretch": table_stretch,
-             "loco": table_loco, "kfold": table_kfold, "ablation": table_ablation}
+             "loco": table_loco, "kfold": table_kfold, "ablation": table_ablation, "loco_strict": table_loco_strict}
 
 
 def render(readme_text):

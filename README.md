@@ -37,7 +37,7 @@ Exact greedy $t$-spanner construction costs $O(m\,(n + m \log n))$, which is slo
 | Construction speed-up over classic greedy | 7.6x to 34.6x on 4 cities (4,540 to 42,846 nodes) |
 | Strong connectivity | preserved in every benchmark run |
 | Pairs above the stretch bound, in-distribution (10⁵ per city) | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0110% |
-| Pairs above the stretch bound, leave-one-city-out fine-tuning (base model saw all four cities) | none above 1.5 in 3 of 4 cities; Eindhoven: 0.0040% |
+| Pairs above the stretch bound, leave-one-city-out (base model trained without the held-out city) | none above 1.5 in 3 of 4 cities in any seed; Eindhoven: 0.0047% on average over 3 seeds |
 | Pruning decision, fewest repairs | GA-tuned threshold with feedback (C), then fuzzy (E), then random (D), in every paired seed |
 <!-- END:glance -->
 
@@ -126,9 +126,24 @@ The calibrated threshold with feedback (C) needs the fewest repairs, the fuzzy r
   <img src="results/figures/global_stretch_cdf.png" alt="Combined empirical CDF of directed stretch" width="62%">
 </p>
 
+### Leave-one-city-out, strict protocol
+
+The base model is trained without the held-out city, fine-tuned on the repair feedback of the other cities only, and applied to the held-out city (`benchmarks/loco_strict.py`). This is the unseen-city test; four cities and a few seeds still make it a small study.
+
+<!-- BEGIN:loco_strict -->
+| Held-out city | Seeds | Mean stretch (mean ± sd over seeds) | Worst max stretch over seeds | Violation rate (> 1.5) |
+| --- | --- | --- | --- | --- |
+| Manhattan | 3 | 1.0019 ± 0.0004 | 1.2850 | 0.0000% (largest in one seed 0.0000%) |
+| Eindhoven | 3 | 1.0049 ± 0.0006 | 2.8587 | 0.0047% (largest in one seed 0.0060%) |
+| Paris | 3 | 1.0024 ± 0.0001 | 1.2375 | 0.0000% (largest in one seed 0.0000%) |
+| Rome | 3 | 1.0028 ± 0.0001 | 1.2703 | 0.0000% (largest in one seed 0.0000%) |
+
+Base model trained without the held-out city; fine-tuned on the other cities only; 100,000 sampled pairs per run. Compared with the earlier table (base model had seen the held-out city), the mean stretch of a city differs by at most 0.0006 (Rome). The seeds change the base-model initialization and the fine-tuning order; no significance test is reported. Source: `results/raw_runs/leave_one_city_out_strict.csv`.
+<!-- END:loco_strict -->
+
 ### Leave-one-city-out fine-tuning (the base model saw all four cities)
 
-The model is fine-tuned on the repair feedback of three cities and evaluated on the fourth, rotating over all four. **This is not a test on an unseen city.** The base model was trained on `results/data/spanner_dataset_pro.csv`, which contains the greedy-spanner labels of all four cities, so the held-out city's edges were seen in base training; only the fine-tuning step excluded it. The table below is kept as a record of that protocol. `benchmarks/loco_strict.py` trains the base model without the held-out city (and fine-tunes only on the other cities' feedback, over several seeds); its results will replace this section once the run is complete.
+The model is fine-tuned on the repair feedback of three cities and evaluated on the fourth, rotating over all four. **This is not a test on an unseen city.** The base model was trained on `results/data/spanner_dataset_pro.csv`, which contains the greedy-spanner labels of all four cities, so the held-out city's edges were seen in base training; only the fine-tuning step excluded it. The table below is kept as a record of that protocol; the strict protocol is in the section above.
 
 <!-- BEGIN:loco -->
 | Held-out city | Fine-tuned on | Mean stretch | Median | 99th percentile | Max | Violation rate (> 1.5) |
@@ -205,7 +220,7 @@ Source: `results/raw_runs/stratified_kfold_results.csv`.
 - **The repair guarantee is local.** The repair check verifies, for each removed edge, that its own endpoints remain within $t$ times that edge's original length. It does not check arbitrary source-destination pairs, and independently repaired regions can compound into a longer detour for a few unrelated pairs. In Eindhoven this appears as a small nonzero violation rate (in-distribution and leave-one-city-out). Classic greedy construction bounds every pair provably. Whether a global guarantee is required, and which repair would provide it, is an open design question.
 - **Scale.** Zero-shot on Tokyo (437,623 nodes after SCC extraction, 831,958 edges) the output was valid (mean stretch 1.0010, maximum 1.3493, no violation over 218.8 million sampled pairs, byte-identical on a repeated run, see `results/raw_runs/tokyo_scale_test_verified.log`), but only 0.09% of edges (755) were pruned, so there is essentially no sparsification benefit at that scale. The edge-centrality feature and threshold were calibrated on graphs about two orders of magnitude smaller; retraining or recalibration on 400,000+ node cities has not been done.
 - **Ablation.** Four cities, 5 seeds each, committed weights. Only the comparison with the random baseline that is matched on removed edges is interpretable; the other two variants remove more edges. No significance test is reported (5 seeds per city, shared graph and model within a city). The earlier unmatched run points the other way and is not used; the cause of the difference is not established.
-- **Cities and seeds.** Four cities. The existing leave-one-city-out table is fine-tuning only (the base model saw all four cities), so the only unseen-city evidence is the Tokyo run; the strict protocol (`benchmarks/loco_strict.py`, base model trained without the held-out city, several seeds) has not been run yet.
+- **Cities and seeds.** Four cities. The strict leave-one-city-out study uses a few seeds per held-out city and no significance test; the earlier fine-tuning-only table is not an unseen-city result. The Tokyo run is a separate unseen-city check.
 
 ## Methodology notes
 
@@ -247,14 +262,16 @@ An earlier version re-ran Dijkstra from the same source on the forward distance 
 | README tables match raw data | `python benchmarks/render_readme_tables.py --check` (also part of the test suite) |
 | Regenerate the animation | `python make_animation.py` |
 | Re-run the full benchmark | `python benchmarks/run_full_benchmark.py` (downloads the four city graphs; the speed-up table above uses the newest `full_benchmark_*.csv`) |
-| Leave-one-city-out | `python benchmarks/leave_one_city_out.py` |
+| Leave-one-city-out (fine-tuning only) | `python benchmarks/leave_one_city_out.py` |
+| Leave-one-city-out, strict | `python benchmarks/loco_strict.py --seeds 3` |
 
 Raw result files and when they were produced (the live-degree safeguard and the parallel-edge fix were completed on 2026-08-29):
 
 | Result | Source file | Run committed | Note |
 | --- | --- | --- | --- |
 | Stretch verification | `mc_validator_final.log` | 2026-08-29 | final pipeline |
-| Leave-one-city-out | `leave_one_city_out_results.csv` | 2026-10-23 | final pipeline, one run per fold |
+| Leave-one-city-out (fine-tuning only) | `leave_one_city_out_results.csv` | 2026-10-23 | one run per fold; the base model had seen the held-out city |
+| Leave-one-city-out, strict | `leave_one_city_out_strict.csv` | 2026-10-31 | 3 seeds; base model trained without the held-out city |
 | Pruning-mechanism comparison | `fuzzy_pruning_rebuilt.csv` | 2026-08-24 | rebuilt after the sign correction |
 | Speed benchmark | `full_benchmark_20261029_083345.csv` | 2026-10-29 | 5 seeds; model retrained inside the run; city graphs re-downloaded from OpenStreetMap, so sizes differ slightly from the 2026-07-06 run |
 | Edge-classifier cross-validation | `stratified_kfold_results.csv` | 2026-10-29 | supplementary; edge-level folds leak, see above |
